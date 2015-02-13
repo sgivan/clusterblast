@@ -1,0 +1,437 @@
+#!/usr/bin/env perl
+# $Id: clusterblast,v 1.27 2006/06/08 18:01:26 givans Exp $
+#
+#
+use warnings;
+use strict;
+use 5.10.0;
+#use autodie qw/:all/;
+use autodie;
+use Carp;
+use FileHandle;
+use Bio::SeqIO;
+use Getopt::Std;
+use vars qw($opt_d $opt_D $opt_f $opt_F $opt_b $opt_B $opt_h $opt_n $opt_E $opt_N $opt_c $opt_Q $opt_H $opt_M $opt_a $opt_m $opt_r $opt_q $opt_p $opt_P $opt_l $opt_L $opt_t $opt_W);
+
+getopts('f:Fd:Db:Bhn:E:N:QHMa:mc:r:q:p:P:l:L:t:W');
+
+my $usage = "clusterblast -f <folder name> -d <blast database name> -b <blast program>";
+
+my ($infile,$db,$blast,$Evalue,$html,$mega,$extraArgs,$cpath,$dpath,$debug,$force,$quiet,$monitor,$monitor_max,$queue,$minseqlength,$maxseqlength,$dontwait);
+my ($memory,$processors,$task);
+
+$debug = $opt_D;
+$force = $opt_F;
+$quiet = $opt_Q;
+$monitor = $opt_c;
+$monitor_max = $monitor ? $monitor : 1000;
+print "debugging mode\n" if ($debug);
+$queue = $opt_q || 'normal';
+$minseqlength = $opt_l || 1;
+$maxseqlength = $opt_L || 1000000;
+$task = $opt_t || 'blastn';
+$dontwait = $opt_W;
+
+if ($opt_h) {
+print <<HELP;
+
+This is a script that takes a FASTA-formatted file of nucleotide
+or protein sequences and BLASTs them using the Lewis cluster.  A
+summary of the command line options:
+
+usage: $usage
+
+-f      FASTA file name
+-d      the BLAST database to search
+-b      the type of BLAST program (ie, blastn, blastp)
+-P      path to blast database, if not /dfs/databases/ (use '/' as last character)
+-B      use the new family of NCBI BLAST binaries (not blastall)
+-n      contig number cutoff (seq name must be in form Contig###)
+-l      minimum sequence length to accept [1]
+-L      maximum sequence length to accept [1000000]
+-a      extra arguments to send to blastall (ie, -a '-b 500', or '-num_alignments 500')
+-r      amount of RAM needed by blastall (default = 1000, which = 1GB)
+-E      BLAST E-value cut-off (defaults to 1e-06; enclose in quotes)
+-H      generate HTML output
+-M      use Megablast (only available for a blastn search)
+-q      which cluster queue to submit jobs to [normal]
+-p      number of processors to use per blast job [1]
+-N      specific nodes to run jobs on; for example:
+            -N 'chrom10-20'
+            -N 'chrom10-20;chrom40-52'
+            -N 'chrom10;chrom12;chrom15'
+            -N 'chrom10;chrom12-15;chrom18'
+-h      display this help message
+-Q      quite mode
+-W      after submitting jobs, don't wait for them to finish before exiting
+-c #	throttle queue submission (pause after this number of job submissions)
+-D      debug mode -- don't submit jobs to cluster
+
+HELP
+exit;
+}
+
+#$cpath = "/evbio/NCBI/ncbitools/ncbi/";
+$cpath = "/opt/bio/ncbi/bin";
+$cpath = "/ircf/ircfapps/bin" if ($opt_B);
+#$dpath = "/dfs/databases/NR";
+#$dpath = "/ircf/dbase/BLASTDB";
+#$dpath = $opt_P || "/dfs/databases/";
+$dpath = $opt_P || '/ircf/dbase/BLASTDB';
+$memory = $opt_r || 1000;
+$processors = $opt_p || 1;
+
+#if ($opt_m) {
+#  $cpath = "/mnt" . $cpath;
+##  $dpath = "/mnt" . $dpath;
+#}
+
+if ($opt_f) {
+  $infile = $opt_f;
+} elsif ($ARGV[0]) {
+  $infile = $ARGV[0];
+} else {
+  print "input file: ";
+  chomp($infile = <STDIN>);
+}
+die "you must enter a file on command line\n" if (!$infile);
+die "file '$infile' doesn't exist\n" if (!-e $infile);
+
+if ($opt_d) {
+  $db = $opt_d;
+} else {
+  print "BLAST database to search: ";
+  chomp($db = <STDIN>);
+}
+die "you must enter a BLAST database\n" if (!$db);
+
+if ($opt_b) {
+  $blast = $opt_b;
+} else {
+  print "BLAST program: ";
+  chomp($blast = <STDIN>);
+}
+die "you must enter a BLAST program\n" if (!$blast);
+
+if ($opt_E) {
+  $Evalue = $opt_E;
+} else {
+  $Evalue = '1e-06';
+}
+
+if ($opt_H) {
+    #html = 'T';
+    if ($opt_B) {
+        $html = '-html';
+    } else {
+        $html = '-T T';
+    }
+} else {
+    #$html = 'F';
+    if ($opt_B) {
+        $html = '';
+    } else {
+        $html = '-T F';
+    }
+}
+
+if ($opt_M) {
+    $mega = 'T';
+    if ($opt_B) {
+        $task = 'megablast';
+        $blast = 'blastn';
+    }
+} else {
+    $mega = 'F';
+}
+
+if ($opt_a) {
+  $extraArgs = $opt_a;
+} else {
+  $extraArgs = '';
+}
+
+#
+# determine number of sequences in input file
+#
+my $grepcmd = "grep -c '>' $infile";
+open(GREP,"$grepcmd |") or die "can't invoke '$grepcmd': $!";
+my $fseqcnt = <GREP>;
+chomp($fseqcnt);
+if (!close(GREP)) {
+  warn "can't close $grepcmd properly: $!";
+  exit();
+}
+
+
+if ($fseqcnt && $fseqcnt >= 50000) {
+  print "You are attempting to run clusterblast on $fseqcnt sequences.\nYou should use clusterblastmax.\n";
+  exit() unless ($force);
+}
+if (!$force) {
+  $monitor = 1 if ($fseqcnt && $fseqcnt > $monitor_max);
+}
+
+my $seqin = Bio::SeqIO->new(	-file	=>	$infile,
+				-format	=>	'fasta',
+				);
+my $pwd = `pwd`;
+chomp($pwd);
+print "working directory: '$pwd'\n" unless ($quiet);
+my $wd_cluster = $pwd;
+#$wd_cluster =~ s/\/raid\d//;
+#$wd_cluster =~ s/^\/home\d+/\/home/;
+$wd_cluster =~ s/.+\/home/\/home/;
+print "cluster working directory:  '$wd_cluster'\n" unless ($quiet);
+
+my $home_dir = $ENV{'HOME'};
+print "home directory:  '$home_dir'\n" unless ($quiet);
+my $cluster_dir = "$home_dir/cluster";
+if (!-d $cluster_dir) {
+  print "creating cluster directory in '$home_dir' to hold queue messages\n";
+  if (system("mkdir $cluster_dir")) {
+    croak("can't create '$cluster_dir'\n");
+  }
+}
+
+my ($loopcnt,$jobid,$monitor_cnt,@seqs) = (0,0,0);
+
+while (my $seq = $seqin->next_seq()) {
+  push(@seqs,$seq);
+}
+
+if ($fseqcnt != scalar(@seqs)) {
+  print "error reading sequence file, try again\n";
+  exit(1);
+}
+
+#while (my $seq = $seqin->next_seq()) {
+foreach my $seq (@seqs) {
+    next if ($seq->length() < $minseqlength);
+    next if ($seq->length() > $maxseqlength);
+    my $id = $seq->id();
+    my $blastfile = "$id.$blast";
+    $blastfile = "$blastfile.html" if ($opt_H);
+
+
+    if ($seq->seq() !~ /\w+/) {
+        print "$id has no sequence data\n";
+        next;
+    }
+
+    #  next unless ($seq->seq() =~ /\w+/);
+    #  ++$loopcnt;
+    #  print "loopcnt = '$loopcnt'\n";
+    #  exit if ($loopcnt >= 10);
+
+    if ($id =~ /^Contig(\d+)/) {
+        $jobid = $1;
+
+        if ($opt_n) {
+          next unless ($jobid >= $opt_n);
+        }
+    } else {
+        ++$jobid;
+    }
+    ++$loopcnt;
+    ++$monitor_cnt;
+
+    my $seqout = Bio::SeqIO->new(	
+                   -file =>	">$id.nfa",
+                   -format	=>	'fasta',
+                  );
+    $seqout->write_seq($seq);
+
+    if (!-e "$id.nfa") {
+        die "didn't create '$id.nfa' properly\n";
+    }
+
+    #   if ($id =~ /^Contig(\d+)/) {
+    #     $jobid = $1;
+    #   } else {
+    #     ++$jobid;
+    #   }
+
+    my $outfile = "$id.cluster";
+    my $jobname = "BLAST" . "$jobid";
+
+    my $cfile = new FileHandle "> $outfile";
+
+    #  print $cfile "#!/bin/bash\n\n#\$ -S /bin/sh\n#\$ -N $jobname\n";
+    #  print $cfile "export BLASTMAT=$cpath/share/blastdata\n";
+    print $cfile "#BSUB -L /bin/bash\n";
+    print $cfile "#BSUB -J $id\n";
+    #   print $cfile "#\$ -o $cluster_dir\n";
+    print $cfile "#BSUB -o $cluster_dir\n";
+    #   print $cfile "#\$ -e $cluster_dir\n";
+    print $cfile "#BSUB -e $cluster_dir\n";
+    print $cfile "#BSUB -q $queue\n";
+    print $cfile "#BSUB -n $processors\n";
+    print $cfile "#BSUB -R \"rusage[mem=$memory], span[hosts=1]\"\n";
+    #   print $cfile "#\$ -p -10\n";
+    #print $cfile "export BLASTMAT=$cpath/data/\n";
+    #print $cfile "export BLASTMAT=/evbio/NCBI/ncbitools/ncbi/data/\n";
+    print $cfile "export BLASTMAT=$cpath/../data/\n";
+    print $cfile "export BLASTDB=$dpath\n";
+    print $cfile "export BLASTDIR=$cpath\n";
+    if ($opt_B) {
+        # the following four lines were commented and caused problems when 
+        # not using blastn or megablast
+        # uncomment and test
+        if ($blast =~ /blastn/ || $blast =~ /mega/) {
+            $blast = "blastn -task $task";
+        }
+        print $cfile "$cpath/$blast -num_threads $processors -db $db -query $wd_cluster/$id.nfa -out $wd_cluster/$blastfile -evalue '$Evalue' $html $extraArgs\n";
+        #print $cfile "$cpath/$blast -task $task -num_threads $processors -db $db -query $wd_cluster/$id.nfa -out $wd_cluster/$blastfile -evalue '$Evalue' $html $extraArgs\n";
+    } else {
+        print $cfile "$cpath/bin/blastall -a $processors -d $db -p $blast -i $wd_cluster/$id.nfa -o $wd_cluster/$blastfile -e '$Evalue' $html -n $mega $extraArgs\n";
+    }
+
+    $cfile->close;
+
+    if (!-e $outfile) {
+        die "didn't create '$outfile' properly\n";
+    }
+
+    if (!$debug) {
+
+    #    my $qsub = "qsub ";
+    my $qsub = "bsub ";
+    if ($opt_N) {
+      my $nodeset = parse_nodes($opt_N);
+      $qsub .= "-q '$nodeset' ";
+    }
+    #    $qsub .= "$outfile";
+    $qsub .= "< $outfile";
+
+    open(Q, "$qsub |") or die "can't open qsub command: $!";
+    my @stdout = <Q>;
+    die "can't close qsub command: $!" unless (close(Q));
+
+    my $jobid;
+    if (@stdout) {
+    #      if ($stdout[0] =~ /your\sjob\s(\d+)\s\(/) {
+      if ($stdout[0] =~ /Job\s<(\d+)>\s/) {
+        $jobid = $1;
+    #        print "\$jobid = '$jobid'\n";
+      }
+      print @stdout unless ($quiet);
+    }
+
+    my $last = 0;
+    #$last = 1 if ($loopcnt == $fseqcnt);
+    $last = 1 if ($loopcnt >= $fseqcnt);
+
+    if (($monitor || $last) && !$force) {
+
+      if (($monitor_cnt >= $monitor_max) || ($last && !$dontwait)) {
+            my $sec = 0;
+            print "\n" unless ($quiet);
+
+            #	if ($last) {
+            #	  print "waiting for last job (#$jobid) to finish\n" unless ($quiet);
+            #	} else {
+            #	  $jobid -= int($monitor_max * 0.3);
+            #	  print "waiting for job #$jobid to finish\n" unless ($quiet);
+            #	}
+
+
+            my ($sleep,$mon_loop) = (10,0);
+            while (jobstate($jobid)) {
+                  ++$mon_loop;
+                  if ($mon_loop >= 19) {
+                    $sleep = 60;
+                  } elsif ($mon_loop >= 13) {
+                    $sleep = 30;
+                  }
+                  print "waiting $sleep" . "s for cluster queue: $sec" . "s\n" unless ($quiet);
+                  sleep($sleep);
+                  $sec += $sleep;
+             
+            }
+            $monitor_cnt = 0;
+            print "\n" unless ($quiet);
+       }
+    }
+
+    } else {
+    print "job:  $jobname\n" unless ($quiet);
+    }
+
+}
+
+print "$loopcnt sequences processed\n" unless ($quiet);
+
+sub parse_nodes {
+    my $string = shift;
+    return $string;
+}
+
+sub parse_nodes_deprecated {# this subroutine doesn't work with Lewis cluster
+  my $string = shift;
+  my ($nodestring,@strings);
+#  print "passed: '$string'\n";
+
+  if ($string =~ /;/) {
+    @strings = split/;/,$string;
+  } else {
+    push(@strings,$string);
+  }
+
+#  if ($string =~ /([A-Za-z]+)(\d+)\-(\d+)/) {
+
+  foreach my $tstring (@strings) {
+#    print "\$tstring = '$tstring'\n";
+    if ($tstring =~ /([A-Za-z]+)(\d+)\-(\d+)/) {
+      my $prefix = $1;
+      my $start = $2;
+      my $end = $3;
+#      print "\tprefix: '$prefix', start: '$start', end: '$end'\n";
+      if ($end < $start) {
+	my $temp = $end;
+	$end = $start;
+	$start = $temp;
+      }
+
+      for (my $i = $start; $i <= $end; ++$i) {
+	$nodestring .= "," if ($nodestring);
+	$nodestring .= "$prefix" . "$i" . ".q";
+      }
+
+    } else {
+      $nodestring .= "," if ($nodestring);
+      $nodestring .= $tstring . ".q";
+    }
+  }
+#  print "returning nodestring '$nodestring'\n";
+#  exit;
+  return $nodestring;
+}
+
+sub jobstate {
+    my $jobid = shift;
+
+    my $bsub = "bjobs";
+
+    my @resp = ();
+    eval {
+        open(BSUB, "-|", "$bsub $jobid");
+        #my @resp = <BSUB>;
+        @resp = <BSUB>;
+        close(BSUB);
+    #    print "response: '@resp'\n";
+    };
+
+    given ($@) {
+        default { say "\$\@ = '$@'" }
+    }
+
+    if (@resp && ($resp[1] =~ /RUN/ || $resp[1] =~ /PEND/)) {
+#        print "returning '1'\n";
+        return 1;
+    } else {
+#        print "returning '0'\n";
+        return 0;
+    }
+
+}

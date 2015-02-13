@@ -1,0 +1,438 @@
+#!/usr/bin/perl
+# $Id: clusterblastmax,v 3.9 2007/04/05 17:51:06 givans Exp $
+#
+#
+use warnings;
+use strict;
+use Carp;
+use FileHandle;
+use Bio::SeqIO;
+use Getopt::Std;
+use File::Copy;
+use Cwd qw(chdir cwd);
+use vars qw($opt_d $opt_D $opt_f $opt_F $opt_b $opt_h $opt_n $opt_E $opt_N $opt_c $opt_Q $opt_H $opt_M $opt_m $opt_a $opt_p );
+
+getopts('f:Fd:Db:hn:E:N:QHMa:mc:p:');
+
+my($infile,$db,$blast,$Evalue,$html,$mega,$extraArgs,$cpath,$dpath,$debug,$force,$quiet,$monitor,$monitor_max,$maxseqcnt);
+
+$debug = $opt_D;
+$force = $opt_F;
+$quiet = $opt_Q;
+$monitor = $opt_c;
+$monitor_max = $monitor ? $monitor : 1000;
+$maxseqcnt = $opt_p || 25000;
+print "debugging mode\n" if ($debug);
+
+my $usage = "clusterblastmax -f <folder name> -d <blast database name> -b <blast program>";
+
+if ($opt_h) {
+print <<HELP;
+
+This is a script that takes a FASTA-formatted file of nucleotide
+or protein sequences and BLASTs them using the CGRB cluster.
+clusterblastmax is specialized to work with >50,000 sequences.
+If you are working with fewer sequences, use clusterblast.
+A summary of the command line options:
+
+usage: $usage
+
+-f	FASTA file name
+-p	number of sequences per subdirectory (default = 25000)
+-d	the BLAST database to search
+-b	the type of BLAST program (ie, blastn, blastp)
+-n	contig number cutoff (seq name must be in form Contig###)
+-a	extra arguments to send to blastall (ie, -a '-b 500')
+-E	BLAST E-value cut-off (defaults to 1e-06; enclose in quotes)
+-H	generate HTML output
+-M	use Megablast (only available for a blastn search)
+-N	specific nodes to run jobs on; for example:
+             -N 'chrom10-20'
+             -N 'chrom10-20;chrom40-52'
+             -N 'chrom10;chrom12;chrom15'
+             -N 'chrom10;chrom12-15;chrom18'
+-h	display this help message
+-Q	quiet mode
+-c #	throttle queue submission (pause after this number of job submissions)
+-D	debug mode -- don't submit jobs to cluster
+
+HELP
+exit;
+}
+
+
+$cpath = "/local/cluster";
+$dpath = "/mnt/dbase/NCBI/db";
+#$maxseqcnt = 50000;
+
+if ($opt_m) {
+  $cpath = "/mnt" . $cpath;
+#  $dpath = "/mnt" . $dpath;
+}
+
+if ($opt_f) {
+  $infile = $opt_f;
+} elsif ($ARGV[0]) {
+  $infile = $ARGV[0];
+} else {
+  print "input file: ";
+  chomp($infile = <STDIN>);
+}
+die "you must enter a file on command line\n" if (!$infile);
+
+if ($opt_d) {
+  $db = $opt_d;
+} else {
+  print "BLAST database to search: ";
+  chomp($db = <STDIN>);
+}
+die "you must enter a BLAST database\n" if (!$db);
+
+if ($opt_b) {
+  $blast = $opt_b;
+} else {
+  print "BLAST program: ";
+  chomp($blast = <STDIN>);
+}
+die "you must enter a BLAST program\n" if (!$blast);
+
+if ($opt_E) {
+  $Evalue = $opt_E;
+} else {
+  $Evalue = '1e-06';
+}
+
+if ($opt_H) {
+  $html = 'T';
+} else {
+  $html = 'F';
+}
+
+if ($opt_M) {
+  $mega = 'T';
+} else {
+  $mega = 'F';
+}
+
+if ($opt_a) {
+  $extraArgs = $opt_a;
+} else {
+  $extraArgs = '';
+}
+
+#
+# determine number of sequences in input file
+#
+my $grepcmd = "grep -c '>' $infile";
+open(GREP,"$grepcmd |") or die "can't invoke '$grepcmd': $!";
+my $fseqcnt = <GREP>;
+chomp($fseqcnt);
+if (!close(GREP)) {
+  warn "can't close $grepcmd properly: $!";
+  exit();
+}
+#print "number of sequences = $fseqcnt\n";
+
+if (!$fseqcnt || $fseqcnt < $maxseqcnt) {
+  print "Since you are working with $fseqcnt input sequences, you should probably use clusterblast\n";
+  print "Do you still want to continue [y/N]? ";
+  my $answ = <>;
+  chomp($answ);
+  exit if (!$answ || $answ =~ /^n/i);
+} elsif ($fseqcnt >= 1000000) {
+  print "You are trying to work with $fseqcnt sequences.\nPlease contact Scott Givan or Chris Sullivan for assistance.\n";
+  exit();
+}
+if (!$force) {
+  $monitor = 1 if ($fseqcnt && $fseqcnt > $monitor_max);
+}
+
+#
+# split large input file into separate smaller input files
+#
+
+my $splitcmd = "/usr/local/bin/seqsplit.pl -f $infile -n $maxseqcnt -d ";
+$splitcmd .= cwd();
+open(SPLIT,"$splitcmd |") or die "can't invoke '$splitcmd': $!";
+my $splitSTDOUT = <SPLIT>;
+chomp($splitSTDOUT);
+if (!close(SPLIT)) {
+  warn "can't close '$splitcmd' properly: $!";
+  exit();
+}
+if ($splitSTDOUT =~ /(\d+)\ssequences/) {
+  if ($1 != $fseqcnt) {
+    warn "only $1 sequences were found, expecting $fseqcnt\n";
+    exit();
+  }
+} else {
+  warn "there was a problem with the output of '$splitcmd'\n";
+  print "STDOUT = '$splitSTDOUT'\n";
+  exit();
+}
+
+opendir(DIR,".") or die "can't read this directory: $!";
+my @dirfiles = readdir(DIR);
+if (!closedir(DIR)) {
+  warn "can't close this directory properly: $!";
+  exit();
+}
+
+#
+# copy each sub-file into its own directory
+# delete sub-file from base directory after copy
+#
+
+$infile =~ s/^.+\///;
+my $maxdir = 1;
+foreach my $dirfile (@dirfiles) {
+  my $testname = $infile . "_";
+
+  if ($dirfile =~ /^$testname(\d+)/) {
+    my $tdir = $1;
+    $maxdir = $tdir if ($tdir > $maxdir);
+    if (!mkdir($tdir)) {
+      warn "can't create directory '$tdir': $!";
+      exit();
+    } else {
+      if (!copy($dirfile,"$tdir" . "/$infile")) {
+	warn "can't copy '$dirfile' to '$tdir/seqs': $!";
+	exit();
+      }
+      if (!unlink($dirfile)) {
+	warn "can't delete '$dirfile' from this directory: $!";
+	exit();
+      }
+    }
+  }
+}
+
+#
+# now run clusterblast algorithm on each directory
+#
+
+my $basedir = cwd();
+my ($loopcnt,$masterfile_cnt) = (0,$fseqcnt);
+for (my $tdir = 1; $tdir <= $maxdir; ++$tdir) {
+  if (!chdir($basedir . "/$tdir")) {
+    print "can't chdir to '$basedir/$tdir': $!";
+    exit();
+  } else {
+    print "current directory: ", cwd(), "\n";
+  }
+
+  my $seqin = Bio::SeqIO->new(	-file	=>	$infile,
+				-format	=>	'fasta',
+			     );
+
+  my $pwd = cwd();
+#  print "working directory: '$pwd'\n";
+  my $wd_cluster = $pwd;
+  $wd_cluster =~ s/\/raid\d//;
+  $wd_cluster =~ s/^\/home\d+/\/home/;
+#  print "cluster working directory:  '$wd_cluster'\n";
+
+  my $home_dir = $ENV{'HOME'};
+#  print "home directory:  '$home_dir'\n";
+  my $cluster_dir = "$home_dir/cluster";
+  if (!-d $cluster_dir) {
+    print "creating cluster directory in '$home_dir' to hold queue messages\n";
+    if (system("mkdir $cluster_dir")) {
+      croak("can't create '$cluster_dir'\n");
+    }
+  }
+
+
+  my ($jobid,$monitor_cnt,@seqs) = (0,0);
+  my $grepcmd = "grep -c '>' $infile";
+  open(GREP,"$grepcmd |") or die "can't invoke '$grepcmd': $!";
+  my $fseqcnt = <GREP>;
+  chomp($fseqcnt);
+  if (!close(GREP)) {
+    warn "can't close $grepcmd properly: $!";
+    exit();
+  }
+
+  while (my $seq = $seqin->next_seq()) {
+    push(@seqs,$seq);
+  }
+
+  if ($fseqcnt != scalar(@seqs)) {
+    print "error reading sequence file, try again\n";
+    exit(1);
+  }
+
+  foreach my $seq (@seqs) {
+
+    my $id = $seq->id();
+    my $blastfile = "$id.$blast";
+    $blastfile = "$blastfile.html" if ($opt_H);
+
+  
+    if ($seq->seq() !~ /\w+/) {
+      print "$id has no sequence data\n";
+      next;
+    }
+  
+    #  next unless ($seq->seq() =~ /\w+/);
+    #  ++$loopcnt;
+    #  print "loopcnt = '$loopcnt'\n";
+    #  exit if ($loopcnt >= 10);
+
+    if ($id =~ /^Contig(\d+)/) {
+      $jobid = $1;
+
+      if ($opt_n) {
+	next unless ($jobid >= $opt_n);
+      }
+    } else {
+      ++$jobid;
+    }
+    ++$loopcnt;
+    ++$monitor_cnt;
+
+    my $seqout = Bio::SeqIO->new(	-file =>	">$id.nfa",
+					-format	=>	'fasta',
+				);
+    $seqout->write_seq($seq);
+
+    if (!-e "$id.nfa") {
+      die "didn't create '$id.nfa' properly\n";
+    }
+
+
+    #   if ($id =~ /^Contig(\d+)/) {
+    #     $jobid = $1;
+    #   } else {
+    #     ++$jobid;
+    #   }
+
+    my $outfile = "$id.cluster";
+    my $jobname = "BLAST" . "$jobid";
+
+    my $cfile = new FileHandle "> $outfile";
+
+    print $cfile "#!/bin/csh\n\n#\$ -S /bin/sh\n#\$ -N $jobname\n";
+    #  print $cfile "export BLASTMAT=/mnt/local/cluster/share/blastdata\n";
+    #  print $cfile "export BLASTDB=/mnt/dbase/NCBI/db\n";
+    #  print $cfile "export BLASTDIR=/mnt/local/cluster/bin\n";
+    print $cfile "export BLASTMAT=$cpath/share/blastdata\n";
+    print $cfile "export BLASTDB=$dpath\n";
+    print $cfile "export BLASTDIR=$cpath/bin\n";
+    print $cfile "#\$ -o $cluster_dir\n";
+    print $cfile "#\$ -e $cluster_dir\n";
+    print $cfile "#\$ -p -10\n";
+    print $cfile "$cpath/bin/blastall -d $db -p $blast -i $wd_cluster/$id.nfa -o $wd_cluster/$blastfile -e '$Evalue' -T $html -n $mega $extraArgs";
+
+    $cfile->close;
+
+    if (!-e $outfile) {
+      die "didn't create '$outfile' properly\n";
+    }
+
+
+    if (!$debug) {
+
+
+      my $qsub = "qsub ";
+      if ($opt_N) {
+	my $nodeset = parse_nodes($opt_N);
+	$qsub .= "-q '$nodeset' ";
+      }
+      $qsub .= "$outfile";
+
+      open(Q, "$qsub |") or die "can't open qsub command: $!";
+      my @stdout = <Q>;
+      die "can't close qsub command: $!" unless (close(Q));
+
+      my $jobid;
+      if (@stdout) {
+	if ($stdout[0] =~ /your\sjob\s(\d+)\s\(/) {
+	  $jobid = $1;
+	}
+	print @stdout unless ($quiet);
+      }
+
+      my $last = 0;
+      $last = 1 if ($loopcnt == $masterfile_cnt);
+
+      if (($monitor || $last) && !$force) {
+
+	if (($monitor_cnt == $monitor_max) || $last) {
+	  my $sec = 0;
+	  print "\n" unless ($quiet);
+
+	  if ($last) {
+	    print "waiting for last job (#$jobid) to finish\n" unless ($quiet);
+	  } else {
+	    $jobid -= int($monitor_max * 0.3);
+	    print "waiting for job #$jobid to finish\n" unless ($quiet);
+	  }
+
+
+	  my ($sleep,$mon_loop) = (10,0);
+	  while (-e "/local/cluster/sge/default/spool/qmaster/job_scripts/$jobid") {
+	    ++$mon_loop;
+	    if ($mon_loop >= 19) {
+	      $sleep = 60;
+	    } elsif ($mon_loop >= 13) {
+	      $sleep = 30;
+	    }
+	    print "waiting $sleep" . "s for cluster queue: $sec" . "s\n" unless ($quiet);
+	    sleep($sleep);
+	    $sec += $sleep;
+
+	  }
+	  $monitor_cnt = 0;
+	  print "\n" unless ($quiet);
+	}
+      }
+
+    } else {
+      print "created '$id' set; file $loopcnt\n";
+    }
+  }
+}
+
+print "$loopcnt sequences processed\n";
+
+sub parse_nodes {
+  my $string = shift;
+  my ($nodestring,@strings);
+#  print "passed: '$string'\n";
+
+  if ($string =~ /;/) {
+    @strings = split/;/,$string;
+  } else {
+    push(@strings,$string);
+  }
+
+#  if ($string =~ /([A-Za-z]+)(\d+)\-(\d+)/) {
+
+  foreach my $tstring (@strings) {
+#    print "\$tstring = '$tstring'\n";
+    if ($tstring =~ /([A-Za-z]+)(\d+)\-(\d+)/) {
+      my $prefix = $1;
+      my $start = $2;
+      my $end = $3;
+#      print "\tprefix: '$prefix', start: '$start', end: '$end'\n";
+      if ($end < $start) {
+	my $temp = $end;
+	$end = $start;
+	$start = $temp;
+      }
+
+      for (my $i = $start; $i <= $end; ++$i) {
+	$nodestring .= "," if ($nodestring);
+	$nodestring .= "$prefix" . "$i" . ".q";
+      }
+
+    } else {
+      $nodestring .= "," if ($nodestring);
+      $nodestring .= $tstring . ".q";
+    }
+  }
+#  print "returning nodestring '$nodestring'\n";
+#  exit;
+  return $nodestring;
+}
