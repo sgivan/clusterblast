@@ -24,9 +24,9 @@ use Bio::Search::SearchUtils;
 use Getopt::Std;
 #use lib '/home/cgrb/givans/bin';
 #use FastBlastParse;
-use vars qw/ $opt_f $opt_o $opt_e $opt_E $opt_q $opt_b $opt_h $opt_S $opt_n $opt_d $opt_a $opt_M $opt_l /;
+use vars qw/ $opt_f $opt_o $opt_e $opt_E $opt_q $opt_b $opt_h $opt_S $opt_n $opt_d $opt_a $opt_M $opt_l $opt_c /;
 
-getopts('f:o:e:Eqb:hS:n:daMl');
+getopts('f:o:e:Eqb:hS:n:daMlc:');
 my $usage = "bestblastparse -f <file name>";
 
 $| = 1;
@@ -46,6 +46,7 @@ Option		Description
  -M		use this flag if clusterblastmax was used
  -o		output file name (defaults to bestblast.tab)
  -e		E-value cutoff (defaults to 1e-06)
+ -c     queue coverage cutoff (percentage; ie 85 means 85%)
  -E		print report for every hit < E-value (overrides -n)
  -l		generate output for every ORF (even with no hits)
  -b		type of blast search [defaults to blastn]
@@ -122,7 +123,7 @@ if ($opt_M) {
 }
 
 open(OUT,">$outfile") or die "can't open '$outfile': $!";
-print OUT "File\tQuery\tQuery Length\tE-value\t%ID\tLength\tDescription";
+print OUT "File\tQuery\tQuery Length\tE-value\t%ID\tLength\tQuery Coverage\tDescription";
 print OUT "\tQuery ID\tSubj ID\tQuery start\tQuery stop\tQuery strand\tSubj start\tSubj stop\tSubj strand\tbits" if ($opt_d);
 #print OUT "\tQuery ID\tSubj ID\tQuery start\tQuery stop\tSubj start\tSubj stop\tbits" if ($opt_d);
 print OUT "\tQuery String\tHomolgy string\tHit String" if ($opt_a);
@@ -203,8 +204,15 @@ foreach my $file (@files) {
 	$percent = sprintf "%4.2f", $hsp->percent_identity();
 	$file =~ s/\.$blast//;
 	$file = "$file";
+    my $qcoverage = ($length/$qlength)*100;
+    my $qcoverage_f = sprintf "%2.2f", $qcoverage;
 
-	print OUT "$file\t$qname\t$qlength\t$score\t$percent\t$length\t$name";
+    if ($opt_c) {
+        next if ($qcoverage < $opt_c);
+    }
+    
+
+	print OUT "$file\t$qname\t$qlength\t$score\t$percent\t$length\t$qcoverage_f\t$name";
 	++$hitlist{$name} if ($opt_S);
 
 	if ($opt_d) {
