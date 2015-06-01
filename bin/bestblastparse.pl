@@ -72,7 +72,6 @@ if ($opt_f) {
 }
 $folder = "." unless ($folder);
 
-
 if (!$opt_o) {
 #    print "Name of output file:  ";
 #    $outfile = <STDIN>;
@@ -122,10 +121,8 @@ if ($opt_M) {
   die "can't walk back from '$folder' directory: $!" if ( !chdir('..') );
 }
 
-
-
 open(OUT,">$outfile") or die "can't open '$outfile': $!";
-print OUT "File\tQuery\tE-value\t%ID\tLength\tDescription";
+print OUT "File\tQuery\tQuery Length\tE-value\t%ID\tLength\tDescription";
 print OUT "\tQuery ID\tSubj ID\tQuery start\tQuery stop\tQuery strand\tSubj start\tSubj stop\tSubj strand\tbits" if ($opt_d);
 #print OUT "\tQuery ID\tSubj ID\tQuery start\tQuery stop\tSubj start\tSubj stop\tbits" if ($opt_d);
 print OUT "\tQuery String\tHomolgy string\tHit String" if ($opt_a);
@@ -156,20 +153,23 @@ foreach my $file (@files) {
 #  				      -format	=>	'blast',
 #  				      );
     my $result = $searchio->next_result();
-    my($name,$score,$qname,$length,$percent) = ("non-conserved protein","N/A");
+    my($name,$score,$qname,$length,$percent,$qlength) = ("non-conserved protein","N/A");
 
-    eval { $qname = $result->query_name() . " " . $result->query_description(); };
+    eval {
+        $qname = $result->query_name() . " " . $result->query_description();
+        $qlength = $result->query_length();
+    };
     if ($@) {
-      print "\n\nproblem with '$file'.  This usually means the BLAST search failed for this sequence.\n";
-      print "ERROR:  $@ \n\n";
-      print "continue? [y/n] (default = y):  ";
-      my $ans = <STDIN>;
-      chomp($ans);
-      if ($ans && $ans eq 'n') {
-	exit();
-      } else {
-	next;
-      }
+        print "\n\nproblem with '$file'.  This usually means the BLAST search failed for this sequence.\n";
+        print "ERROR:  $@ \n\n";
+        print "continue? [y/n] (default = y):  ";
+        my $ans = <STDIN>;
+        chomp($ans);
+        if ($ans && $ans eq 'n') {
+            exit();
+        } else {
+            next;
+        }
     }
 
 
@@ -204,7 +204,7 @@ foreach my $file (@files) {
 	$file =~ s/\.$blast//;
 	$file = "$file";
 
-	print OUT "$file\t$qname\t$score\t$percent\t$length\t$name";
+	print OUT "$file\t$qname\t$qlength\t$score\t$percent\t$length\t$name";
 	++$hitlist{$name} if ($opt_S);
 
 	if ($opt_d) {
