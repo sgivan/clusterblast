@@ -41,21 +41,21 @@ the output to a tab-delimited file.
 
  usage:  $usage
 
-Option		Description
- -f		input folder name
- -M		use this flag if clusterblastmax was used
- -o		output file name (defaults to bestblast.tab)
- -e		E-value cutoff (defaults to 1e-06)
+Option  Description
+ -f     input folder name
+ -M     use this flag if clusterblastmax was used
+ -o     output file name (defaults to bestblast.tab)
+ -e     E-value cutoff (defaults to 1e-06)
  -c     queue coverage cutoff (percentage; ie 85 means 85%)
- -E		print report for every hit < E-value (overrides -n)
- -l		generate output for every ORF (even with no hits)
- -b		type of blast search [defaults to blastn]
- -n		number of best hits to output for each report
- -d		print detailed information about best hit
- -a		print alignment for each hit
- -S		name of file to print summary information
- -q		quiet mode
- -h		display this help message
+ -E     print report for every hit < E-value (overrides -n)
+ -l     generate output for every ORF (even with no hits)
+ -b     type of blast search [defaults to blastn]
+ -n     number of best hits to output for each report
+ -d     print detailed information about best hit
+ -a     print alignment for each hit
+ -S     name of file to print summary information
+ -q     quiet mode
+ -h     display this help message
 
 HELP
 exit(0);
