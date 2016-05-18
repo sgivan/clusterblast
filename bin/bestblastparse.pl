@@ -161,16 +161,16 @@ foreach my $file (@files) {
         $qlength = $result->query_length();
     };
     if ($@) {
-        print "\n\nproblem with '$file'.  This usually means the BLAST search failed for this sequence.\n";
-        print "ERROR:  $@ \n\n";
-        print "continue? [y/n] (default = y):  ";
-        my $ans = <STDIN>;
-        chomp($ans);
-        if ($ans && $ans eq 'n') {
-            exit();
-        } else {
-            next;
-        }
+        print STDERR "\n\nproblem with '$file'.  This usually means the BLAST search failed for this sequence.\n";
+        print STDERR "ERROR:  $@ \n\n";
+#        print "continue? [y/n] (default = y):  ";
+#        my $ans = <STDIN>;
+#        chomp($ans);
+#        if ($ans && $ans eq 'n') {
+#            exit();
+#        } else {
+#            next;
+#        }
     }
 
 

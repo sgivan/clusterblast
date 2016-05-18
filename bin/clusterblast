@@ -164,10 +164,10 @@ if (!close(GREP)) {
 }
 
 
-if ($fseqcnt && $fseqcnt >= 50000) {
-  print "You are attempting to run clusterblast on $fseqcnt sequences.\nYou should use clusterblastmax.\n";
-  exit() unless ($force);
-}
+#if ($fseqcnt && $fseqcnt >= 50000) {
+#  print "You are attempting to run clusterblast on $fseqcnt sequences.\nYou should use clusterblastmax.\n";
+#  exit() unless ($force);
+#}
 if (!$force) {
   $monitor = 1 if ($fseqcnt && $fseqcnt > $monitor_max);
 }
