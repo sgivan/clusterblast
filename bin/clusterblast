@@ -11,6 +11,8 @@ use Carp;
 use FileHandle;
 use Bio::SeqIO;
 use Getopt::Std;
+use lib '/home/sgivan/projects/clusterblast/lib';
+use Clusterblast;
 use vars qw($opt_d $opt_D $opt_f $opt_F $opt_b $opt_B $opt_h $opt_n $opt_E $opt_N $opt_c $opt_Q $opt_H $opt_M $opt_a $opt_m $opt_r $opt_q $opt_p $opt_P $opt_l $opt_L $opt_t $opt_W);
 
 getopts('f:Fd:Db:Bhn:E:N:QHMa:mc:r:q:p:P:l:L:t:W');
@@ -31,6 +33,8 @@ $minseqlength = $opt_l || 1;
 $maxseqlength = $opt_L || 1000000;
 $task = $opt_t || 'blastn';
 $dontwait = $opt_W;
+
+my $cb = Clusterblast->new();
 
 if ($opt_h) {
 print <<HELP;
@@ -74,9 +78,6 @@ exit;
 #$cpath = "/evbio/NCBI/ncbitools/ncbi/";
 $cpath = "/opt/bio/ncbi/bin";
 $cpath = "/ircf/ircfapps/bin" if ($opt_B);
-#$dpath = "/dfs/databases/NR";
-#$dpath = "/ircf/dbase/BLASTDB";
-#$dpath = $opt_P || "/dfs/databases/";
 $dpath = $opt_P || '/ircf/dbase/BLASTDB';
 $memory = $opt_r || 1000;
 $processors = $opt_p || 1;
@@ -247,116 +248,137 @@ foreach my $seq (@seqs) {
         die "didn't create '$id.nfa' properly\n";
     }
 
-    #   if ($id =~ /^Contig(\d+)/) {
-    #     $jobid = $1;
-    #   } else {
-    #     ++$jobid;
-    #   }
+    my $params = {
+        id          =>  $id,
+        jobid       =>  $jobid,
+        cluster_dir =>  $cluster_dir,
+        queue       =>  $queue,
+        cpath       =>  $cpath,
+        dpath       =>  $dpath,
+        memory      =>  $memory,
+        processors  =>  $processors,
+        opt_B       =>  $opt_B,
+        blast       =>  $blast,
+        task        =>  $task,
+        wd_cluster  =>  $wd_cluster,
+        blastfile   =>  $blastfile,
+        Evalue      =>  $Evalue,
+        html        =>  $html,
+        extraArgs   =>  $extraArgs,
+        db          =>  $db,
+        mega        =>  $mega,
+    };
 
-    my $outfile = "$id.cluster";
-    my $jobname = "BLAST" . "$jobid";
-
-    my $cfile = new FileHandle "> $outfile";
-
-    #  print $cfile "#!/bin/bash\n\n#\$ -S /bin/sh\n#\$ -N $jobname\n";
-    #  print $cfile "export BLASTMAT=$cpath/share/blastdata\n";
-    print $cfile "#BSUB -L /bin/bash\n";
-    print $cfile "#BSUB -J $id\n";
-    #   print $cfile "#\$ -o $cluster_dir\n";
-    print $cfile "#BSUB -o $cluster_dir\n";
-    #   print $cfile "#\$ -e $cluster_dir\n";
-    print $cfile "#BSUB -e $cluster_dir\n";
-    print $cfile "#BSUB -q $queue\n";
-    print $cfile "#BSUB -n $processors\n";
-    print $cfile "#BSUB -R \"rusage[mem=$memory], span[hosts=1]\"\n";
-    #   print $cfile "#\$ -p -10\n";
-    #print $cfile "export BLASTMAT=$cpath/data/\n";
-    #print $cfile "export BLASTMAT=/evbio/NCBI/ncbitools/ncbi/data/\n";
-    print $cfile "export BLASTMAT=$cpath/../data/\n";
-    print $cfile "export BLASTDB=$dpath\n";
-    print $cfile "export BLASTDIR=$cpath\n";
-    if ($opt_B) {
-        # the following four lines were commented and caused problems when 
-        # not using blastn or megablast
-        # uncomment and test
-        if ($blast =~ /blastn/ || $blast =~ /mega/) {
-            $blast = "blastn -task $task";
-        }
-        print $cfile "$cpath/$blast -num_threads $processors -db $db -query $wd_cluster/$id.nfa -out $wd_cluster/$blastfile -evalue '$Evalue' $html $extraArgs\n";
-        #print $cfile "$cpath/$blast -task $task -num_threads $processors -db $db -query $wd_cluster/$id.nfa -out $wd_cluster/$blastfile -evalue '$Evalue' $html $extraArgs\n";
-    } else {
-        print $cfile "$cpath/bin/blastall -a $processors -d $db -p $blast -i $wd_cluster/$id.nfa -o $wd_cluster/$blastfile -e '$Evalue' $html -n $mega $extraArgs\n";
+    my $batch = $cb->batch()->openlava();
+    $batch->make_batch_file($params);
+    my $outfile = $batch->batchfile();
+    my $jobname = $batch->jobname();
+    if ($batch->check_batch_file() == -1) {
+        die "didn't create '$outfile' properly\n";
     }
 
-    $cfile->close;
+    if (0) {
+        my $outfile = "$id.cluster";
+        my $jobname = "BLAST" . "$jobid";
 
-    if (!-e $outfile) {
-        die "didn't create '$outfile' properly\n";
+        my $cfile = new FileHandle "> $outfile";
+
+        print $cfile "#BSUB -L /bin/bash\n";
+        print $cfile "#BSUB -J $id\n";
+        print $cfile "#BSUB -o $cluster_dir\n";
+        print $cfile "#BSUB -e $cluster_dir\n";
+        print $cfile "#BSUB -q $queue\n";
+        print $cfile "#BSUB -n $processors\n";
+        print $cfile "#BSUB -R \"rusage[mem=$memory], span[hosts=1]\"\n";
+        print $cfile "export BLASTMAT=$cpath/../data/\n";
+        print $cfile "export BLASTDB=$dpath\n";
+        print $cfile "export BLASTDIR=$cpath\n";
+        if ($opt_B) {
+            # the following four lines were commented and caused problems when 
+            # not using blastn or megablast
+            # uncomment and test
+            if ($blast =~ /blastn/ || $blast =~ /mega/) {
+                $blast = "blastn -task $task";
+            }
+            print $cfile "$cpath/$blast -num_threads $processors -db $db -query $wd_cluster/$id.nfa -out $wd_cluster/$blastfile -evalue '$Evalue' $html $extraArgs\n";
+        } else {
+            print $cfile "$cpath/bin/blastall -a $processors -d $db -p $blast -i $wd_cluster/$id.nfa -o $wd_cluster/$blastfile -e '$Evalue' $html -n $mega $extraArgs\n";
+        }
+
+        $cfile->close;
+
+        if (!-e $outfile) {
+            die "didn't create '$outfile' properly\n";
+        }
     }
 
     if (!$debug) {
 
-    #    my $qsub = "qsub ";
-    my $qsub = "bsub ";
-    if ($opt_N) {
-      my $nodeset = parse_nodes($opt_N);
-      $qsub .= "-q '$nodeset' ";
-    }
-    #    $qsub .= "$outfile";
-    $qsub .= "< $outfile";
-
-    open(Q, "$qsub |") or die "can't open qsub command: $!";
-    my @stdout = <Q>;
-    die "can't close qsub command: $!" unless (close(Q));
-
-    my $jobid;
-    if (@stdout) {
-    #      if ($stdout[0] =~ /your\sjob\s(\d+)\s\(/) {
-      if ($stdout[0] =~ /Job\s<(\d+)>\s/) {
-        $jobid = $1;
-    #        print "\$jobid = '$jobid'\n";
-      }
-      print @stdout unless ($quiet);
-    }
-
-    my $last = 0;
-    #$last = 1 if ($loopcnt == $fseqcnt);
-    $last = 1 if ($loopcnt >= $fseqcnt);
-
-    if (($monitor || $last) && !$force) {
-
-      if (($monitor_cnt >= $monitor_max) || ($last && !$dontwait)) {
-            my $sec = 0;
-            print "\n" unless ($quiet);
-
-            #	if ($last) {
-            #	  print "waiting for last job (#$jobid) to finish\n" unless ($quiet);
-            #	} else {
-            #	  $jobid -= int($monitor_max * 0.3);
-            #	  print "waiting for job #$jobid to finish\n" unless ($quiet);
-            #	}
-
-
-            my ($sleep,$mon_loop) = (10,0);
-            while (jobstate($jobid)) {
-                  ++$mon_loop;
-                  if ($mon_loop >= 19) {
-                    $sleep = 60;
-                  } elsif ($mon_loop >= 13) {
-                    $sleep = 30;
-                  }
-                  print "waiting $sleep" . "s for cluster queue: $sec" . "s\n" unless ($quiet);
-                  sleep($sleep);
-                  $sec += $sleep;
-             
+        if (0) {
+            my $qsub = "bsub ";
+            if ($opt_N) {
+                my $nodeset = parse_nodes($opt_N);
+                $qsub .= "-q '$nodeset' ";
             }
-            $monitor_cnt = 0;
-            print "\n" unless ($quiet);
-       }
-    }
+            
+            $qsub .= "< $outfile";
+
+            open(Q, "$qsub |") or die "can't open qsub command: $!";
+            my @stdout = <Q>;
+            die "can't close qsub command: $!" unless (close(Q));
+
+            my $jobid;
+            if (@stdout) {
+                if ($stdout[0] =~ /Job\s<(\d+)>\s/) {
+                    $jobid = $1;
+                }
+                print @stdout unless ($quiet);
+            }
+        }
+
+        $batch->submit_batch();
+        my $jobid = $batch->jobid();
+
+        print $batch->stdout();
+
+        my $last = 0;
+        #$last = 1 if ($loopcnt == $fseqcnt);
+        $last = 1 if ($loopcnt >= $fseqcnt);
+
+        if (($monitor || $last) && !$force) {
+
+        if (($monitor_cnt >= $monitor_max) || ($last && !$dontwait)) {
+                my $sec = 0;
+                print "\n" unless ($quiet);
+
+                #	if ($last) {
+                #	  print "waiting for last job (#$jobid) to finish\n" unless ($quiet);
+                #	} else {
+                #	  $jobid -= int($monitor_max * 0.3);
+                #	  print "waiting for job #$jobid to finish\n" unless ($quiet);
+                #	}
+
+
+                my ($sleep,$mon_loop) = (10,0);
+                while (jobstate($jobid)) {
+                    ++$mon_loop;
+                    if ($mon_loop >= 19) {
+                        $sleep = 60;
+                    } elsif ($mon_loop >= 13) {
+                        $sleep = 30;
+                    }
+                    print "waiting $sleep" . "s for cluster queue: $sec" . "s\n" unless ($quiet);
+                    sleep($sleep);
+                    $sec += $sleep;
+                
+                }
+                $monitor_cnt = 0;
+                print "\n" unless ($quiet);
+        }
+        }
 
     } else {
-    print "job:  $jobname\n" unless ($quiet);
+     print "job:  $jobname\n" unless ($quiet);
     }
 
 }

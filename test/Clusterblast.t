@@ -1,10 +1,10 @@
-package Clusterblast;
+#!/usr/bin/env perl
 #
 #===============================================================================
 #
-#         FILE:  Clusterblast.pm
+#         FILE:  Clusterblast.t
 #
-#  DESCRIPTION:  Main module for Clusterblast
+#  DESCRIPTION:  Test script for Clusterblast class
 #
 #        FILES:  ---
 #         BUGS:  ---
@@ -12,29 +12,25 @@ package Clusterblast;
 #       AUTHOR:  Dr. Scott A. Givan (sag), givans@missouri.edu
 #      COMPANY:  University of Missouri, USA
 #      VERSION:  1.0
-#      CREATED:  05/18/16 06:18:52
+#      CREATED:  05/18/16 10:27:05
 #     REVISION:  ---
 #===============================================================================
 
+use 5.010;      # Require at least Perl version 5.10
+use autodie;
 use strict;
 use warnings;
-use autodie;
-use Moose;
 use lib '/home/sgivan/projects/clusterblast/lib';
-use Clusterblast::Batch;
 
-has 'batch' => (
-    is          => 'ro',
-    builder     =>  '_build_batch',
-);
+# declare number of tests to run
+use Test::More tests => 3;
 
-sub _build_batch {
-#    require Clusterblast::Batch;
+use_ok('Clusterblast');
 
-    my $batch = Clusterblast::Batch->new();
+my $cb = Clusterblast->new();
 
-    return $batch;
-}
+isa_ok($cb,'Clusterblast');
 
+my $batch = $cb->batch();
 
-__PACKAGE__->meta->make_immutable;
+isa_ok($batch,'Clusterblast::Batch');
