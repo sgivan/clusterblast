@@ -1,17 +1,23 @@
 #!/usr/bin/env perl
 # $Id: clusterblast,v 1.27 2006/06/08 18:01:26 givans Exp $
 #
+# parse path to include local library files
+BEGIN {
+    use File::Spec;
+    my ($volume,$directories,$file) = File::Spec->splitpath($0);
+    my $path = $directories . "../lib/";
+    unshift @INC, $path;
+}
 #
 use warnings;
 use strict;
 use 5.10.0;
-#use autodie qw/:all/;
 use autodie;
 use Carp;
 use FileHandle;
 use Bio::SeqIO;
 use Getopt::Std;
-use lib '/home/sgivan/projects/clusterblast/lib';
+#use lib '/home/sgivan/projects/clusterblast/lib';
 use Clusterblast;
 use vars qw($opt_d $opt_D $opt_f $opt_F $opt_b $opt_B $opt_h $opt_n $opt_E $opt_N $opt_c $opt_Q $opt_H $opt_M $opt_a $opt_m $opt_r $opt_q $opt_p $opt_P $opt_l $opt_L $opt_t $opt_W);
 
