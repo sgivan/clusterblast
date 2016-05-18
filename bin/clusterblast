@@ -277,41 +277,6 @@ foreach my $seq (@seqs) {
         die "didn't create '$outfile' properly\n";
     }
 
-    if (0) {
-        my $outfile = "$id.cluster";
-        my $jobname = "BLAST" . "$jobid";
-
-        my $cfile = new FileHandle "> $outfile";
-
-        print $cfile "#BSUB -L /bin/bash\n";
-        print $cfile "#BSUB -J $id\n";
-        print $cfile "#BSUB -o $cluster_dir\n";
-        print $cfile "#BSUB -e $cluster_dir\n";
-        print $cfile "#BSUB -q $queue\n";
-        print $cfile "#BSUB -n $processors\n";
-        print $cfile "#BSUB -R \"rusage[mem=$memory], span[hosts=1]\"\n";
-        print $cfile "export BLASTMAT=$cpath/../data/\n";
-        print $cfile "export BLASTDB=$dpath\n";
-        print $cfile "export BLASTDIR=$cpath\n";
-        if ($opt_B) {
-            # the following four lines were commented and caused problems when 
-            # not using blastn or megablast
-            # uncomment and test
-            if ($blast =~ /blastn/ || $blast =~ /mega/) {
-                $blast = "blastn -task $task";
-            }
-            print $cfile "$cpath/$blast -num_threads $processors -db $db -query $wd_cluster/$id.nfa -out $wd_cluster/$blastfile -evalue '$Evalue' $html $extraArgs\n";
-        } else {
-            print $cfile "$cpath/bin/blastall -a $processors -d $db -p $blast -i $wd_cluster/$id.nfa -o $wd_cluster/$blastfile -e '$Evalue' $html -n $mega $extraArgs\n";
-        }
-
-        $cfile->close;
-
-        if (!-e $outfile) {
-            die "didn't create '$outfile' properly\n";
-        }
-    }
-
     if (!$debug) {
 
         if (0) {
@@ -319,20 +284,6 @@ foreach my $seq (@seqs) {
             if ($opt_N) {
                 my $nodeset = parse_nodes($opt_N);
                 $qsub .= "-q '$nodeset' ";
-            }
-            
-            $qsub .= "< $outfile";
-
-            open(Q, "$qsub |") or die "can't open qsub command: $!";
-            my @stdout = <Q>;
-            die "can't close qsub command: $!" unless (close(Q));
-
-            my $jobid;
-            if (@stdout) {
-                if ($stdout[0] =~ /Job\s<(\d+)>\s/) {
-                    $jobid = $1;
-                }
-                print @stdout unless ($quiet);
             }
         }
 
@@ -342,7 +293,7 @@ foreach my $seq (@seqs) {
         print $batch->stdout();
 
         my $last = 0;
-        #$last = 1 if ($loopcnt == $fseqcnt);
+
         $last = 1 if ($loopcnt >= $fseqcnt);
 
         if (($monitor || $last) && !$force) {
@@ -360,7 +311,8 @@ foreach my $seq (@seqs) {
 
 
                 my ($sleep,$mon_loop) = (10,0);
-                while (jobstate($jobid)) {
+
+                while ($batch->jobstate()) {
                     ++$mon_loop;
                     if ($mon_loop >= 19) {
                         $sleep = 60;
@@ -431,30 +383,3 @@ sub parse_nodes_deprecated {# this subroutine doesn't work with Lewis cluster
   return $nodestring;
 }
 
-sub jobstate {
-    my $jobid = shift;
-
-    my $bsub = "bjobs";
-
-    my @resp = ();
-    eval {
-        open(BSUB, "-|", "$bsub $jobid");
-        #my @resp = <BSUB>;
-        @resp = <BSUB>;
-        close(BSUB);
-    #    print "response: '@resp'\n";
-    };
-
-    given ($@) {
-        default { say "\$\@ = '$@'" }
-    }
-
-    if (@resp && ($resp[1] =~ /RUN/ || $resp[1] =~ /PEND/)) {
-#        print "returning '1'\n";
-        return 1;
-    } else {
-#        print "returning '0'\n";
-        return 0;
-    }
-
-}

@@ -125,4 +125,29 @@ sub parse_jobid {
     $self->jobid($jobid);
 }
 
+sub jobstate {
+    my $self = shift;
+    my $jobid = $self->jobid();
+
+    my $bin = "bjobs";
+
+    my @resp = ();
+    eval {
+        open(CHK, "-|", "$bin $jobid");
+        @resp = <CHK>;
+        close(CHK);
+    };
+
+#    given ($@) {# like switch:
+#        default { say "\$\@ = '$@'" }
+#    }
+
+    if (@resp && ($resp[1] =~ /RUN/ || $resp[1] =~ /PEND/)) {
+        return 1;
+    } else {
+        return 0;
+    }
+
+}
+
 __PACKAGE__->meta->make_immutable;
