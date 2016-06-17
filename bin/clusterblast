@@ -195,7 +195,7 @@ my $home_dir = $ENV{'HOME'};
 print "home directory:  '$home_dir'\n" unless ($quiet);
 my $cluster_dir = "$home_dir/cluster";
 if (!-d $cluster_dir) {
-  print "creating cluster directory in '$home_dir' to hold queue messages\n";
+  print "creating cluster directory in '$home_dir' to hold queue messages\n" unless($quiet);
   if (system("mkdir $cluster_dir")) {
     croak("can't create '$cluster_dir'\n");
   }
@@ -296,7 +296,7 @@ foreach my $seq (@seqs) {
         $batch->submit_batch();
         my $jobid = $batch->jobid();
 
-        print $batch->stdout();
+        print $batch->stdout() unless ($quiet);
 
         my $last = 0;
 
