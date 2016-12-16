@@ -24,9 +24,9 @@ use Bio::Search::SearchUtils;
 use Getopt::Std;
 #use lib '/home/cgrb/givans/bin';
 #use FastBlastParse;
-use vars qw/ $opt_f $opt_o $opt_e $opt_E $opt_q $opt_b $opt_h $opt_S $opt_n $opt_d $opt_a $opt_M $opt_l $opt_c /;
+use vars qw/ $opt_f $opt_o $opt_e $opt_E $opt_q $opt_b $opt_h $opt_S $opt_n $opt_d $opt_a $opt_M $opt_l $opt_c $opt_p /;
 
-getopts('f:o:e:Eqb:hS:n:daMlc:');
+getopts('f:o:e:Eqb:hS:n:daMlc:p:');
 my $usage = "bestblastparse -f <file name>";
 
 $| = 1;
@@ -46,6 +46,7 @@ Option  Description
  -M     use this flag if clusterblastmax was used
  -o     output file name (defaults to bestblast.tab)
  -e     E-value cutoff (defaults to 1e-06)
+ -p     % identity cutoff (85 means 85%)
  -c     queue coverage cutoff (percentage; ie 85 means 85%)
  -E     print report for every hit < E-value (overrides -n)
  -l     generate output for every ORF (even with no hits)
@@ -209,6 +210,10 @@ foreach my $file (@files) {
 
     if ($opt_c) {
         next if ($qcoverage < $opt_c);
+    }
+     
+    if ($opt_p) {
+        next if ($percent < $opt_p);
     }
     
 
