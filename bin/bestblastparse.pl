@@ -125,7 +125,7 @@ if ($opt_M) {
 
 open(OUT,">$outfile") or die "can't open '$outfile': $!";
 print OUT "File\tQuery\tQuery Length\tE-value\t%ID\tLength\tQuery Coverage\tDescription";
-print OUT "\tQuery ID\tSubj ID\tSubj Length\tQuery start\tQuery stop\tQuery strand\tSubj start\tSubj stop\tSubj strand\tbits" if ($opt_d);
+print OUT "\tQuery ID\tSubj ID\tSubj Length\tSubj Coverage\tQuery start\tQuery stop\tQuery strand\tSubj start\tSubj stop\tSubj strand\tbits" if ($opt_d);
 #print OUT "\tQuery ID\tSubj ID\tQuery start\tQuery stop\tSubj start\tSubj stop\tbits" if ($opt_d);
 print OUT "\tQuery String\tHomolgy string\tHit String" if ($opt_a);
 print OUT "\n";
@@ -229,8 +229,10 @@ foreach my $file (@files) {
 	  my $q_strand = $hsp->strand('query') || '0';
 	  my $h_strand = $hsp->strand('sbjct') || '0';
       my $h_length = $hit->length() || '0';
+      my $scoverage = ($length/$h_length)*100;
+      my $scoverage_f = sprintf "%2.2f", $scoverage;
 
-	  print OUT "\t$q_accession\t$hit_accession\t$h_length\t$q_start\t$q_stop\t$q_strand\t$hit_start\t$hit_stop\t$h_strand\t$bits";
+	  print OUT "\t$q_accession\t$hit_accession\t$h_length\t$scoverage_f\t$q_start\t$q_stop\t$q_strand\t$hit_start\t$hit_stop\t$h_strand\t$bits";
 	}
 
  	if ($opt_a) {
