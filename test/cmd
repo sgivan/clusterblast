@@ -1,1 +1,2 @@
 ../../bin/clusterblast -f seqs -d nr -b blastp -B -a '-num_alignments 10 -num_descriptions 10' -p 4
+../bin/bestblastparse.pl -f blastx -d -b blastx -n 5

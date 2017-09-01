@@ -23,11 +23,12 @@ use Bio::SearchIO;
 use Bio::Search::SearchUtils;
 use Bio::Search::Tiling::MapTiling;
 use Getopt::Std;
+use Data::Dumper;
 #use lib '/home/cgrb/givans/bin';
 #use FastBlastParse;
-use vars qw/ $opt_f $opt_o $opt_e $opt_E $opt_q $opt_b $opt_h $opt_S $opt_n $opt_d $opt_a $opt_M $opt_l $opt_c $opt_C $opt_p /;
+use vars qw/ $opt_f $opt_o $opt_e $opt_E $opt_q $opt_b $opt_h $opt_S $opt_n $opt_d $opt_a $opt_M $opt_l $opt_c $opt_C $opt_p $opt_t /;
 
-getopts('f:o:e:Eqb:hS:n:daMlc:C:p:');
+getopts('f:o:e:Eqb:hS:n:daMlc:C:p:t');
 my $usage = "bestblastparse -f <file name>";
 
 $| = 1;
@@ -50,6 +51,7 @@ Option  Description
  -p     % identity cutoff (85 means 85%)
  -c     queue coverage cutoff (percentage; ie 85 means 85%)
  -C     subj coverage cutoff (percentage; ie 85 means 85%. Requires -d also)
+ -t     output statistics for tiled hsps
  -E     print report for every hit < E-value (overrides -n)
  -l     generate output for every ORF (even with no hits)
  -b     type of blast search [defaults to blastn]
@@ -128,6 +130,7 @@ if ($opt_M) {
 open(OUT,">$outfile") or die "can't open '$outfile': $!";
 print OUT "File\tQuery\tQuery Length\tE-value\t%ID\tLength\tQuery Coverage\tDescription";
 print OUT "\tQuery ID\tSubj ID\tSubj Length\tSubj Coverage\tQuery start\tQuery stop\tQuery strand\tSubj start\tSubj stop\tSubj strand\tbits" if ($opt_d);
+print OUT "\tTiled start (subj)\tTiled stop (subj)\tTiled length (subj)\tTiled coverage (subj)" if ($opt_t);
 #print OUT "\tQuery ID\tSubj ID\tQuery start\tQuery stop\tSubj start\tSubj stop\tbits" if ($opt_d);
 print OUT "\tQuery String\tHomolgy string\tHit String" if ($opt_a);
 print OUT "\n";
@@ -186,18 +189,71 @@ foreach my $file (@files) {
     my $reps_local = 0;
 
     while (my $hit = $result->next_hit()) {
-      my $algorithm = $hit->algorithm();
-      if ($algorithm ne 'TBLASTX') {
-        if (!$hit->tiled_hsps()) {
-#            Bio::Search::SearchUtils::tile_hsps($hit);
-        }
+        print "hit name: '", $hit->name(), "'\n";
+        my $algorithm = $hit->algorithm();
+        my ($qcontig, $scontig);
+        if ($algorithm ne 'TBLASTX') {
+            if (!$hit->tiled_hsps()) {
+                ($qcontig, $scontig) = Bio::Search::SearchUtils::tile_hsps($hit);
+#                if (ref($scontig)) {
+#                    print "subj contig\n";
+#                    print "ref: '", ref($scontig), "'\n";
+#                    for my $a (@{$scontig}) {
+#                        print "\$a ref: '", ref($a), "'\n";
+#                        my $scontig_length = ($a->{stop} - $a->{start}) + 1;
+#                        my $scontig_identity = $a->{iden}/$scontig_length;
+#                        print "subj start: '", $a->{start}, "', stop: '", $a->{stop}, "', identical: '", $a->{iden}, "', length: '$scontig_length', identity: '$scontig_identity'\n";
+#                        for my $key (keys %{$a}) {
+#                            print "key: '$key', value: '", $a->{$key}, "'\n";
+#                        }
+#                    }
+#                    print "query contig\n";
+#                    for my $a (@{$qcontig}) {
+#                        print "\$a ref: '", ref($a), "'\n";
+#                        my $qcontig_length = ($a->{stop} - $a->{start}) + 1;
+#                        my $qcontig_identity = $a->{iden}/$qcontig_length;
+#                        print "subj start: '", $a->{start}, "', stop: '", $a->{stop}, "', identical: '", $a->{iden}, "', length: '$qcontig_length', identity: '$qcontig_identity'\n";
+#                        for my $key (keys %{$a}) {
+#                            print "key: '$key', value: '", $a->{$key}, "'\n";
+#                        }
+#                    }
+#                }
+            }
       }
+
 
       if ($hit->significance <= $evalue) {
         if ($reps_local >= $reps) {
             last unless ($opt_E);
         }
 	    ++$reps_local;
+
+        # calculate some stats differently if hsps are tiled
+        # ie, coverage
+        #
+#        if (ref($scontig)) {
+#            print "subj contig\n";
+#            print "ref: '", ref($scontig), "'\n";
+#            for my $a (@{$scontig}) {
+#                print "\$a ref: '", ref($a), "'\n";
+#                my $scontig_length = ($a->{stop} - $a->{start}) + 1;
+#                my $scontig_identity = $a->{iden}/$scontig_length;
+#                print "subj start: '", $a->{start}, "', stop: '", $a->{stop}, "', identical: '", $a->{iden}, "', length: '$scontig_length', identity: '$scontig_identity'\n";
+#                for my $key (keys %{$a}) {
+#                    print "key: '$key', value: '", $a->{$key}, "'\n";
+#                }
+#            }
+#            print "query contig\n";
+#            for my $a (@{$qcontig}) {
+#                print "\$a ref: '", ref($a), "'\n";
+#                my $qcontig_length = ($a->{stop} - $a->{start}) + 1;
+#                my $qcontig_identity = $a->{iden}/$qcontig_length;
+#                print "subj start: '", $a->{start}, "', stop: '", $a->{stop}, "', identical: '", $a->{iden}, "', length: '$qcontig_length', identity: '$qcontig_identity'\n";
+#                for my $key (keys %{$a}) {
+#                    print "key: '$key', value: '", $a->{$key}, "'\n";
+#                }
+#            }
+#        }
 
         my $hsp = $hit->hsp();
         $name = $hit->name . " " . $hit->description();
@@ -221,6 +277,7 @@ foreach my $file (@files) {
         print OUT "$file\t$qname\t$qlength\t$score\t$percent\t$length\t$qcoverage_f\t$name";
         ++$hitlist{$name} if ($opt_S);
 
+        my $h_length = $hit->length() || '0';
         if ($opt_d) {
             my $q_accession = $result->query_accession() || 'unknown';
             my $hit_accession = $hit->accession() || 'unknown';
@@ -229,7 +286,7 @@ foreach my $file (@files) {
             my $bits = $hit->bits() || 'n/a';
             my $q_strand = $hsp->strand('query') || '0';
             my $h_strand = $hsp->strand('sbjct') || '0';
-            my $h_length = $hit->length() || '0';
+#            my $h_length = $hit->length() || '0';
             my $scoverage = ($length/$h_length)*100;
             my $scoverage_f = sprintf "%2.2f", $scoverage;
             if ($opt_C) {
@@ -239,12 +296,60 @@ foreach my $file (@files) {
             print OUT "\t$q_accession\t$hit_accession\t$h_length\t$scoverage_f\t$q_start\t$q_stop\t$q_strand\t$hit_start\t$hit_stop\t$h_strand\t$bits";
         }
 
+
         if ($opt_a) {
             my $qSeq = $hsp->query_string();
             my $hSeq = $hsp->homology_string();
             my $sSeq = $hsp->hit_string();
 
             print OUT "\t$qSeq\t$hSeq\t$sSeq";
+
+        }
+
+        if ($opt_t) {
+
+            # calculate some stats differently if hsps are tiled
+            # ie, coverage
+            #
+
+            if (ref($scontig)) {
+#                print "subj contig\n";
+#                print "ref: '", ref($scontig), "'\n";
+                my ($scontig_start,$scontig_stop,$scontig_length,$scontig_coverage) = (0,0);
+                for my $a (@{$scontig}) {
+                    print "\$a ref: '", ref($a), "'\n";
+                    for my $key (keys %{$a}) {
+                        print "key: '$key', value: '", $a->{$key}, "'\n";
+                    }
+                    my $tile_length = ($a->{stop} - $a->{start}) + 1;
+                    $scontig_length += $tile_length;
+                    $scontig_start = $a->{start} unless ($scontig_start);
+                    if ($scontig_start > $a->{start}) {
+                        $scontig_start = $a->{start};
+                    }
+                    $scontig_stop = $a->{stop} unless ($scontig_stop);
+                    if ($scontig_stop < $a->{stop}) {
+                        $scontig_stop = $a->{stop};
+                    }
+                    #print "subj start: '", $a->{start}, "', stop: '", $a->{stop}, "', identical: '", $a->{iden}, "', length: '$scontig_length', identity: '$scontig_identity'\n";
+                    print "subj start: '", $a->{start}, "', stop: '", $a->{stop}, "', identical: '", $a->{iden}, "', length: '$scontig_length'\n";
+                }
+#                my $h_length = $hit->length() || '0';
+                $scontig_coverage = ($scontig_length / $h_length) * 100;
+                my $scontig_coverage_f = sprintf "%2.2f", $scontig_coverage;
+                print OUT "\t$scontig_start\t$scontig_stop\t$scontig_length\t$scontig_coverage_f";
+
+#                print "query contig\n";
+#                for my $a (@{$qcontig}) {
+#                    print "\$a ref: '", ref($a), "'\n";
+#                    my $qcontig_length = ($a->{stop} - $a->{start}) + 1;
+#                    my $qcontig_identity = $a->{iden}/$qcontig_length;
+#                    print "subj start: '", $a->{start}, "', stop: '", $a->{stop}, "', identical: '", $a->{iden}, "', length: '$qcontig_length', identity: '$qcontig_identity'\n";
+#                    for my $key (keys %{$a}) {
+#                        print "key: '$key', value: '", $a->{$key}, "'\n";
+#                    }
+#                }
+            }
 
         }
 
