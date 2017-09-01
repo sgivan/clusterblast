@@ -21,12 +21,13 @@ use Carp;
 #use Bio::Tools::BPlite;
 use Bio::SearchIO;
 use Bio::Search::SearchUtils;
+use Bio::Search::Tiling::MapTiling;
 use Getopt::Std;
 #use lib '/home/cgrb/givans/bin';
 #use FastBlastParse;
-use vars qw/ $opt_f $opt_o $opt_e $opt_E $opt_q $opt_b $opt_h $opt_S $opt_n $opt_d $opt_a $opt_M $opt_l $opt_c $opt_p /;
+use vars qw/ $opt_f $opt_o $opt_e $opt_E $opt_q $opt_b $opt_h $opt_S $opt_n $opt_d $opt_a $opt_M $opt_l $opt_c $opt_C $opt_p /;
 
-getopts('f:o:e:Eqb:hS:n:daMlc:p:');
+getopts('f:o:e:Eqb:hS:n:daMlc:C:p:');
 my $usage = "bestblastparse -f <file name>";
 
 $| = 1;
@@ -48,6 +49,7 @@ Option  Description
  -e     E-value cutoff (defaults to 1e-06)
  -p     % identity cutoff (85 means 85%)
  -c     queue coverage cutoff (percentage; ie 85 means 85%)
+ -C     subj coverage cutoff (percentage; ie 85 means 85%. Requires -d also)
  -E     print report for every hit < E-value (overrides -n)
  -l     generate output for every ORF (even with no hits)
  -b     type of blast search [defaults to blastn]
@@ -186,77 +188,79 @@ foreach my $file (@files) {
     while (my $hit = $result->next_hit()) {
       my $algorithm = $hit->algorithm();
       if ($algorithm ne 'TBLASTX') {
-	if (!$hit->tiled_hsps()) {
-	  Bio::Search::SearchUtils::tile_hsps($hit);
-	}
+        if (!$hit->tiled_hsps()) {
+#            Bio::Search::SearchUtils::tile_hsps($hit);
+        }
       }
 
       if ($hit->significance <= $evalue) {
-	  if ($reps_local >= $reps) {
-	    last unless ($opt_E);
-	  }# else {
+        if ($reps_local >= $reps) {
+            last unless ($opt_E);
+        }
 	    ++$reps_local;
-	  #}
 
-	my $hsp = $hit->hsp();
-	$name = $hit->name . " " . $hit->description();
-	$score = $hit->significance();
-	$length = $hsp->length();
-	$percent = sprintf "%4.2f", $hsp->percent_identity();
-	$file =~ s/\.$blast//;
-	$file = "$file";
-    my $qcoverage = ($length/$qlength)*100;
-    my $qcoverage_f = sprintf "%2.2f", $qcoverage;
+        my $hsp = $hit->hsp();
+        $name = $hit->name . " " . $hit->description();
+        $score = $hit->significance();
+        $length = $hsp->length();
+        $percent = sprintf "%4.2f", $hsp->percent_identity();
+        $file =~ s/\.$blast//;
+        $file = "$file";
+        my $qcoverage = ($length/$qlength)*100;
+        my $qcoverage_f = sprintf "%2.2f", $qcoverage;
 
-    if ($opt_c) {
-        next if ($qcoverage < $opt_c);
-    }
-     
-    if ($opt_p) {
-        next if ($percent < $opt_p);
-    }
+        if ($opt_c) {
+            next if ($qcoverage < $opt_c);
+        }
+        
+        if ($opt_p) {
+            next if ($percent < $opt_p);
+        }
     
 
-	print OUT "$file\t$qname\t$qlength\t$score\t$percent\t$length\t$qcoverage_f\t$name";
-	++$hitlist{$name} if ($opt_S);
+        print OUT "$file\t$qname\t$qlength\t$score\t$percent\t$length\t$qcoverage_f\t$name";
+        ++$hitlist{$name} if ($opt_S);
 
-	if ($opt_d) {
-	  my $q_accession = $result->query_accession() || 'unknown';
-	  my $hit_accession = $hit->accession() || 'unknown';
-	  my ($q_start,$hit_start) = ($hsp->start('query'),$hsp->start('hit'));
-	  my ($q_stop,$hit_stop) = ($hsp->end('query') || 'n/a',$hsp->end('hit') || 'n/a');
-	  my $bits = $hit->bits() || 'n/a';
-	  my $q_strand = $hsp->strand('query') || '0';
-	  my $h_strand = $hsp->strand('sbjct') || '0';
-      my $h_length = $hit->length() || '0';
-      my $scoverage = ($length/$h_length)*100;
-      my $scoverage_f = sprintf "%2.2f", $scoverage;
+        if ($opt_d) {
+            my $q_accession = $result->query_accession() || 'unknown';
+            my $hit_accession = $hit->accession() || 'unknown';
+            my ($q_start,$hit_start) = ($hsp->start('query'),$hsp->start('hit'));
+            my ($q_stop,$hit_stop) = ($hsp->end('query') || 'n/a',$hsp->end('hit') || 'n/a');
+            my $bits = $hit->bits() || 'n/a';
+            my $q_strand = $hsp->strand('query') || '0';
+            my $h_strand = $hsp->strand('sbjct') || '0';
+            my $h_length = $hit->length() || '0';
+            my $scoverage = ($length/$h_length)*100;
+            my $scoverage_f = sprintf "%2.2f", $scoverage;
+            if ($opt_C) {
+                next if ($scoverage < $opt_C);
+            }
 
-	  print OUT "\t$q_accession\t$hit_accession\t$h_length\t$scoverage_f\t$q_start\t$q_stop\t$q_strand\t$hit_start\t$hit_stop\t$h_strand\t$bits";
-	}
+            print OUT "\t$q_accession\t$hit_accession\t$h_length\t$scoverage_f\t$q_start\t$q_stop\t$q_strand\t$hit_start\t$hit_stop\t$h_strand\t$bits";
+        }
 
- 	if ($opt_a) {
- 	  my $qSeq = $hsp->query_string();
- 	  my $hSeq = $hsp->homology_string();
- 	  my $sSeq = $hsp->hit_string();
+        if ($opt_a) {
+            my $qSeq = $hsp->query_string();
+            my $hSeq = $hsp->homology_string();
+            my $sSeq = $hsp->hit_string();
 
- 	  print OUT "\t$qSeq\t$hSeq\t$sSeq";
+            print OUT "\t$qSeq\t$hSeq\t$sSeq";
 
- 	}
+        }
 
-	print OUT "\n";
+        print OUT "\n";
       } else {
-	last;
+        last;
       }
 
-    } ## end of while loop
+    } ## end of next_hit() while loop
     if ($opt_l && !$reps_local) {
       print OUT "$file\t$qname\n";
     }
   }
 
 #  last if ($cnt == 20);
-}
+} # end of file for loop
 close(OUT);
 close(SUM) if ($opt_S);
 print "finished\n" unless ($quiet);
