@@ -1,0 +1,11 @@
+#BSUB -L /bin/bash
+#BSUB -J C6_0005
+#BSUB -o /home/sgivan/cluster
+#BSUB -e /home/sgivan/cluster
+#BSUB -q normal
+#BSUB -n 4
+#BSUB -R "rusage[mem=1000], span[hosts=1]"
+export BLASTMAT=/ircf/ircfapps/bin/../data/
+export BLASTDB=/ircf/dbase/BLASTDB
+export BLASTDIR=/ircf/ircfapps/bin
+/ircf/ircfapps/bin/blastp -num_threads 4 -db nr -query /home/sgivan/projects/clusterblast/test/blast/C6_0005.nfa -out /home/sgivan/projects/clusterblast/test/blast/C6_0005.blastp -evalue '1e-06'  -num_alignments 10 -num_descriptions 10

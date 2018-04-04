@@ -1,0 +1,11 @@
+#BSUB -L /bin/bash
+#BSUB -J 
+#BSUB -o ~/cluster
+#BSUB -e ~/cluster
+#BSUB -q normal
+#BSUB -n 1
+#BSUB -R "rusage[mem=1000], span[hosts=1]"
+export BLASTMAT=/opt/bio/ncbi/bin/../data/
+export BLASTDB=/ircf/dbase/BLASTDB
+export BLASTDIR=/opt/bio/ncbi/bin
+/opt/bio/ncbi/bin/bin/blastall -a 1 -d  -p blastn -i /.nfa -o / -e '1e-06'  -n  

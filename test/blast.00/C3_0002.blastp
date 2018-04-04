@@ -1,0 +1,264 @@
+BLASTP 2.2.26+
+
+
+Reference: Stephen F. Altschul, Thomas L. Madden, Alejandro A.
+Schaffer, Jinghui Zhang, Zheng Zhang, Webb Miller, and David J.
+Lipman (1997), "Gapped BLAST and PSI-BLAST: a new generation of
+protein database search programs", Nucleic Acids Res. 25:3389-3402.
+
+
+
+Reference for composition-based statistics: Alejandro A. Schaffer,
+L. Aravind, Thomas L. Madden, Sergei Shavirin, John L. Spouge, Yuri
+I. Wolf, Eugene V. Koonin, and Stephen F. Altschul (2001),
+"Improving the accuracy of PSI-BLAST protein database searches with
+composition-based statistics and other refinements", Nucleic Acids
+Res. 29:2994-3005.
+
+
+
+Database: All non-redundant GenBank CDS translations+PDB+SwissProt+PIR+PRF
+excluding environmental samples from WGS projects
+           84,704,028 sequences; 31,038,470,784 total letters
+
+
+
+Query= C3_0002 C3_0002: putative DNA-binding protein  [+ 0 upstream : + 0
+downstream]
+
+Length=126
+                                                                      Score     E
+Sequences producing significant alignments:                          (Bits)  Value
+
+ref|WP_054362402.1|  transcriptional regulator [Prosthecomicrobiu...   239    3e-78
+ref|WP_061929669.1|  XRE family transcriptional regulator [Aureim...   220    8e-71
+gb|ETI60105.1|  XRE family transcriptional regulator [Sphingobium...   192    7e-60
+ref|WP_048648545.1|  transcriptional regulator [Nitratireductor s...   191    2e-59
+ref|WP_060719466.1|  XRE family transcriptional regulator [Agroba...   189    8e-59
+ref|WP_054735376.1|  transcriptional regulator [Sphingopyxis macr...   184    1e-56
+ref|WP_019966719.1|  transcriptional regulator [Pannonibacter phr...   184    1e-56
+emb|CAK03179.1|  putative DNA-binding protein [Rhizobium legumino...   179    6e-55
+ref|WP_041936895.1|  transcriptional regulator [Rhizobium legumin...   179    8e-55
+ref|WP_012763398.1|  transcriptional regulator [Rhizobium legumin...   178    2e-54
+
+
+>ref|WP_054362402.1| transcriptional regulator [Prosthecomicrobium hirschii]
+ gb|KPL50732.1| XRE family transcriptional regulator [Prosthecomicrobium hirschii]
+Length=125
+
+ Score =  239 bits (609),  Expect = 3e-78, Method: Compositional matrix adjust.
+ Identities = 125/125 (100%), Positives = 125/125 (100%), Gaps = 0/125 (0%)
+
+Query  1    MGSPKVGPALERLGQDIRNARLRRSIAVADLAMRAGTSASSIARLEKGDPGVAIGTLADV  60
+            MGSPKVGPALERLGQDIRNARLRRSIAVADLAMRAGTSASSIARLEKGDPGVAIGTLADV
+Sbjct  1    MGSPKVGPALERLGQDIRNARLRRSIAVADLAMRAGTSASSIARLEKGDPGVAIGTLADV  60
+
+Query  61   LVVLGLLERLADLIDVRKDDLGLALSNERLPQRGKSFTTRIRRQKAKSDPTRALDDVVDP  120
+            LVVLGLLERLADLIDVRKDDLGLALSNERLPQRGKSFTTRIRRQKAKSDPTRALDDVVDP
+Sbjct  61   LVVLGLLERLADLIDVRKDDLGLALSNERLPQRGKSFTTRIRRQKAKSDPTRALDDVVDP  120
+
+Query  121  DGASF  125
+            DGASF
+Sbjct  121  DGASF  125
+
+
+>ref|WP_061929669.1| XRE family transcriptional regulator [Aureimonas sp. AU22]
+Length=125
+
+ Score =  220 bits (560),  Expect = 8e-71, Method: Compositional matrix adjust.
+ Identities = 113/125 (90%), Positives = 121/125 (97%), Gaps = 0/125 (0%)
+
+Query  1    MGSPKVGPALERLGQDIRNARLRRSIAVADLAMRAGTSASSIARLEKGDPGVAIGTLADV  60
+            MGSPKV PALERLGQDIRNARLRR+IAVADLA+R+GTSASSIARLEKGDPGVAIGTLADV
+Sbjct  1    MGSPKVRPALERLGQDIRNARLRRTIAVADLALRSGTSASSIARLEKGDPGVAIGTLADV  60
+
+Query  61   LVVLGLLERLADLIDVRKDDLGLALSNERLPQRGKSFTTRIRRQKAKSDPTRALDDVVDP  120
+            LVVLGL+ERLADLIDVRKDDLGLALS+ERLPQRGKSF TR+R+QKAKS+P RA DDVVDP
+Sbjct  61   LVVLGLVERLADLIDVRKDDLGLALSSERLPQRGKSFATRVRKQKAKSEPRRAFDDVVDP  120
+
+Query  121  DGASF  125
+            DGASF
+Sbjct  121  DGASF  125
+
+
+>gb|ETI60105.1| XRE family transcriptional regulator [Sphingobium sp. C100]
+Length=128
+
+ Score =  192 bits (488),  Expect = 7e-60, Method: Compositional matrix adjust.
+ Identities = 99/125 (79%), Positives = 112/125 (90%), Gaps = 0/125 (0%)
+
+Query  1    MGSPKVGPALERLGQDIRNARLRRSIAVADLAMRAGTSASSIARLEKGDPGVAIGTLADV  60
+            MGSPK  PALERLGQDIRNARLRR IAVADLA+RAGTS SSIARLE+GDPGVAIGTLADV
+Sbjct  4    MGSPKAKPALERLGQDIRNARLRRGIAVADLAVRAGTSPSSIARLERGDPGVAIGTLADV  63
+
+Query  61   LVVLGLLERLADLIDVRKDDLGLALSNERLPQRGKSFTTRIRRQKAKSDPTRALDDVVDP  120
+            LVVLGLLERLADL+D+RKDDLGLAL+ E  P+RG+SF  R++RQKA+++ T+   DVVDP
+Sbjct  64   LVVLGLLERLADLVDIRKDDLGLALAAEHGPRRGRSFAARLKRQKAQTEETQDRQDVVDP  123
+
+Query  121  DGASF  125
+            DGASF
+Sbjct  124  DGASF  128
+
+
+>ref|WP_048648545.1| transcriptional regulator [Nitratireductor sp. ZZ-1]
+Length=125
+
+ Score =  191 bits (485),  Expect = 2e-59, Method: Compositional matrix adjust.
+ Identities = 98/125 (78%), Positives = 112/125 (90%), Gaps = 0/125 (0%)
+
+Query  1    MGSPKVGPALERLGQDIRNARLRRSIAVADLAMRAGTSASSIARLEKGDPGVAIGTLADV  60
+            MGSPK  PALERLGQDIRNARLRR IAVADLA+RAGTS SSIARLE+GDPGVAIGTLADV
+Sbjct  1    MGSPKAKPALERLGQDIRNARLRRGIAVADLAVRAGTSPSSIARLERGDPGVAIGTLADV  60
+
+Query  61   LVVLGLLERLADLIDVRKDDLGLALSNERLPQRGKSFTTRIRRQKAKSDPTRALDDVVDP  120
+            LVVLGLLERLADL+D+RKDDLGLAL+ E  P+RG+SF  R+++QKA+++ T+   DVVDP
+Sbjct  61   LVVLGLLERLADLVDIRKDDLGLALAAEHGPRRGRSFAARLKKQKAQTEETQDRQDVVDP  120
+
+Query  121  DGASF  125
+            DGASF
+Sbjct  121  DGASF  125
+
+
+>ref|WP_060719466.1| XRE family transcriptional regulator [Agrobacterium vitis]
+ gb|KWT90460.1| XRE family transcriptional regulator [Agrobacterium vitis]
+Length=125
+
+ Score =  189 bits (481),  Expect = 8e-59, Method: Compositional matrix adjust.
+ Identities = 97/125 (78%), Positives = 112/125 (90%), Gaps = 0/125 (0%)
+
+Query  1    MGSPKVGPALERLGQDIRNARLRRSIAVADLAMRAGTSASSIARLEKGDPGVAIGTLADV  60
+            MGSPK  PALERLGQDIR+ARLRR IAVADLA+RAGTS SSIARLE+GDPGVAIGTLADV
+Sbjct  1    MGSPKAKPALERLGQDIRHARLRRGIAVADLAVRAGTSPSSIARLERGDPGVAIGTLADV  60
+
+Query  61   LVVLGLLERLADLIDVRKDDLGLALSNERLPQRGKSFTTRIRRQKAKSDPTRALDDVVDP  120
+            LVVLGLLERLADL+D+RKDDLGLAL+ E  P+RG+SF  R+++QKA+++ T+   DVVDP
+Sbjct  61   LVVLGLLERLADLVDIRKDDLGLALAAEHGPRRGRSFAARLKKQKAQTEETQDRQDVVDP  120
+
+Query  121  DGASF  125
+            DGASF
+Sbjct  121  DGASF  125
+
+
+>ref|WP_054735376.1| transcriptional regulator [Sphingopyxis macrogoltabida]
+ gb|ALJ16638.1| XRE family transcriptional regulator (plasmid) [Sphingopyxis 
+macrogoltabida]
+Length=125
+
+ Score =  184 bits (467),  Expect = 1e-56, Method: Compositional matrix adjust.
+ Identities = 95/125 (76%), Positives = 108/125 (86%), Gaps = 0/125 (0%)
+
+Query  1    MGSPKVGPALERLGQDIRNARLRRSIAVADLAMRAGTSASSIARLEKGDPGVAIGTLADV  60
+            MGS K GPALERLGQDIRNARLRR IA ADLA+RAGTS SS+ARLEKGDPGVAIGTLADV
+Sbjct  1    MGSSKTGPALERLGQDIRNARLRRGIAAADLAVRAGTSPSSVARLEKGDPGVAIGTLADV  60
+
+Query  61   LVVLGLLERLADLIDVRKDDLGLALSNERLPQRGKSFTTRIRRQKAKSDPTRALDDVVDP  120
+            LV LGL+ERLADLID+RKDDLGLAL+ E  P+RG+SF +R+R+QK +   +R   D+VDP
+Sbjct  61   LVTLGLVERLADLIDIRKDDLGLALATENGPRRGRSFASRLRKQKTQPAGSRDGKDIVDP  120
+
+Query  121  DGASF  125
+            DGASF
+Sbjct  121  DGASF  125
+
+
+>ref|WP_019966719.1| transcriptional regulator [Pannonibacter phragmitetus]
+Length=125
+
+ Score =  184 bits (466),  Expect = 1e-56, Method: Compositional matrix adjust.
+ Identities = 96/125 (77%), Positives = 109/125 (87%), Gaps = 0/125 (0%)
+
+Query  1    MGSPKVGPALERLGQDIRNARLRRSIAVADLAMRAGTSASSIARLEKGDPGVAIGTLADV  60
+            M SPK  PALERLGQDIRNARLRR IAVADLA+RAGTS SSIARLE+GDPGVAIGTLADV
+Sbjct  1    MSSPKAKPALERLGQDIRNARLRRGIAVADLAVRAGTSPSSIARLERGDPGVAIGTLADV  60
+
+Query  61   LVVLGLLERLADLIDVRKDDLGLALSNERLPQRGKSFTTRIRRQKAKSDPTRALDDVVDP  120
+            LVVLGLLERLADLID+RKDDLGLAL+ E   +RG+SF  R+++QKA+++  + L DVVD 
+Sbjct  61   LVVLGLLERLADLIDIRKDDLGLALATEHGRRRGRSFAARLKKQKAQTEEAKDLHDVVDL  120
+
+Query  121  DGASF  125
+            DGASF
+Sbjct  121  DGASF  125
+
+
+>emb|CAK03179.1| putative DNA-binding protein [Rhizobium leguminosarum bv. viciae 
+3841]
+Length=128
+
+ Score =  179 bits (455),  Expect = 6e-55, Method: Compositional matrix adjust.
+ Identities = 92/125 (74%), Positives = 107/125 (86%), Gaps = 0/125 (0%)
+
+Query  1    MGSPKVGPALERLGQDIRNARLRRSIAVADLAMRAGTSASSIARLEKGDPGVAIGTLADV  60
+            MGSPK  PAL+RLG D+R ARLRR IAVADLA+RAGTS S++ARLEKGDPGV IGTLADV
+Sbjct  4    MGSPKSKPALQRLGHDVRGARLRRGIAVADLAVRAGTSPSTVARLEKGDPGVGIGTLADV  63
+
+Query  61   LVVLGLLERLADLIDVRKDDLGLALSNERLPQRGKSFTTRIRRQKAKSDPTRALDDVVDP  120
+            LVVLGL++RLADL+D+RKDDLGLAL+ ER P+RG+SF T +RRQ+AK    +   DVVDP
+Sbjct  64   LVVLGLVDRLADLVDIRKDDLGLALTAERQPRRGRSFATTLRRQRAKGKTAQGDPDVVDP  123
+
+Query  121  DGASF  125
+            DGASF
+Sbjct  124  DGASF  128
+
+
+>ref|WP_041936895.1| transcriptional regulator [Rhizobium leguminosarum]
+Length=125
+
+ Score =  179 bits (454),  Expect = 8e-55, Method: Compositional matrix adjust.
+ Identities = 92/125 (74%), Positives = 107/125 (86%), Gaps = 0/125 (0%)
+
+Query  1    MGSPKVGPALERLGQDIRNARLRRSIAVADLAMRAGTSASSIARLEKGDPGVAIGTLADV  60
+            MGSPK  PAL+RLG D+R ARLRR IAVADLA+RAGTS S++ARLEKGDPGV IGTLADV
+Sbjct  1    MGSPKSKPALQRLGHDVRGARLRRGIAVADLAVRAGTSPSTVARLEKGDPGVGIGTLADV  60
+
+Query  61   LVVLGLLERLADLIDVRKDDLGLALSNERLPQRGKSFTTRIRRQKAKSDPTRALDDVVDP  120
+            LVVLGL++RLADL+D+RKDDLGLAL+ ER P+RG+SF T +RRQ+AK    +   DVVDP
+Sbjct  61   LVVLGLVDRLADLVDIRKDDLGLALTAERQPRRGRSFATTLRRQRAKGKTAQGDPDVVDP  120
+
+Query  121  DGASF  125
+            DGASF
+Sbjct  121  DGASF  125
+
+
+>ref|WP_012763398.1| transcriptional regulator [Rhizobium leguminosarum]
+ gb|ACS59922.1| XRE family transcriptional regulator [Rhizobium leguminosarum 
+bv. trifolii WSM1325]
+Length=125
+
+ Score =  178 bits (451),  Expect = 2e-54, Method: Compositional matrix adjust.
+ Identities = 91/125 (73%), Positives = 107/125 (86%), Gaps = 0/125 (0%)
+
+Query  1    MGSPKVGPALERLGQDIRNARLRRSIAVADLAMRAGTSASSIARLEKGDPGVAIGTLADV  60
+            MGSPK  PAL+RLG D+R ARLRRS+AV DLA+RAGTS S++ARLEKGDPGV IGTLADV
+Sbjct  1    MGSPKSKPALQRLGHDVRGARLRRSMAVVDLAVRAGTSPSTVARLEKGDPGVGIGTLADV  60
+
+Query  61   LVVLGLLERLADLIDVRKDDLGLALSNERLPQRGKSFTTRIRRQKAKSDPTRALDDVVDP  120
+            LVVLGL++RLADL+D+RKDDLGLAL+ ER P+RG+SF T +RRQ+AK    +   DVVDP
+Sbjct  61   LVVLGLVDRLADLVDIRKDDLGLALTAERQPRRGRSFATTLRRQRAKGKTAQEDPDVVDP  120
+
+Query  121  DGASF  125
+            DGASF
+Sbjct  121  DGASF  125
+
+
+
+Lambda     K      H
+   0.323    0.140    0.387 
+
+Gapped
+Lambda     K      H
+   0.267   0.0410    0.140 
+
+Effective search space used: 764312873940
+
+
+  Database: All non-redundant GenBank CDS translations+PDB+SwissProt+PIR+PRF
+excluding environmental samples from WGS projects
+    Posted date:  Apr 2, 2016  10:14 AM
+  Number of letters in database: 31,038,470,784
+  Number of sequences in database:  84,704,028
+
+
+
+Matrix: BLOSUM62
+Gap Penalties: Existence: 11, Extension: 1
+Neighboring words threshold: 11
+Window for multiple hits: 40
