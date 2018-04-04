@@ -286,10 +286,10 @@ foreach my $seq (@seqs) {
     if (!$debug) {
 
         if (0) {
-            my $qsub = "bsub ";
+            my $qsub = "sbatch ";
             if ($opt_N) {
                 my $nodeset = parse_nodes($opt_N);
-                $qsub .= "-q '$nodeset' ";
+                $qsub .= "-w '$nodeset' ";
             }
         }
 

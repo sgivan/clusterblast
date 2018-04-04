@@ -1,18 +1,18 @@
-package Clusterblast::Batch::openlava;
+package Clusterblast::Batch::slurm;
 #
 #===============================================================================
 #
-#         FILE:  openlava.pm
+#         FILE:  slurm.pm
 #
-#  DESCRIPTION:  Package to submit jobs to LSF/Openlava
+#  DESCRIPTION:  Package to submit jobs to Slurm
 #
 #        FILES:  ---
 #         BUGS:  ---
 #        NOTES:  ---
 #       AUTHOR:  Dr. Scott A. Givan (sag), givans@missouri.edu
 #      COMPANY:  University of Missouri, USA
-#      VERSION:  1.0
-#      CREATED:  05/18/16 06:15:38
+#      VERSION:  ---
+#      CREATED:  04/04/2018
 #     REVISION:  ---
 #===============================================================================
 
@@ -36,11 +36,11 @@ sub make_batch_file {
     my $id = $params->{id} || 'id';
     my $jobid = $params->{jobid} || 'jobid';
     my $cluster_dir = $params->{cluster_dir} ||  "~/cluster";
-    my $queue = $params->{queue} || 'normal';
+    my $queue = $params->{queue} || 'CLUSTER';# this is the slurm partition
     my $cpath = $params->{cpath} || "/opt/bio/ncbi/bin";
     # $cpath changes if $opt_B != 0, see below
     my $dpath = $params->{dpath} || '/ircf/dbase/BLASTDB';
-    my $memory = $params->{memory} || 1000;
+    my $memory = $params->{memory} || '1G';
     my $processors = $params->{processors} || 1;
     my $opt_B = $params->{opt_B} || 0;
     $cpath = "/ircf/ircfapps/bin" if ($opt_B);
@@ -54,23 +54,24 @@ sub make_batch_file {
     my $db = $params->{db} || 'nr';
     my $mega = $params->{mega} || '';
 
-    my $outfile = "$id.bsub";
+    my $outfile = "$id.sbatch";
     $self->batchfile($outfile);
     my $cfile = new FileHandle "> $outfile";
     $self->cfile($cfile);
     my $jobname = "BLAST" . "$jobid";
     $self->jobname($jobname);
 
-    print $cfile "#BSUB -L /bin/bash\n";
-    print $cfile "#BSUB -J $id\n";
-    print $cfile "#BSUB -o $cluster_dir\n";
-    print $cfile "#BSUB -e $cluster_dir\n";
-    print $cfile "#BSUB -q $queue\n";
-    print $cfile "#BSUB -n $processors\n";
-    print $cfile "#BSUB -R \"rusage[mem=$memory], span[hosts=1]\"\n";
+    print $cfile "#! /bin/bash\n";
+    print $cfile "#SBATCH -J $id\n";
+    print $cfile "#SBATCH -o $cluster_dir\n";
+    print $cfile "#SBATCH -e $cluster_dir\n";
+    print $cfile "#SBATCH --partition $queue\n";
+    print $cfile "#SBATCH --ntasks=1\n";
+    print $cfile "#SBATCH --cpus-per-task $processors\n";
+    print $cfile "#SBATCH --mem=$memory\n\n";
     print $cfile "export BLASTMAT=$cpath/../data/\n";
     print $cfile "export BLASTDB=$dpath\n";
-    print $cfile "export BLASTDIR=$cpath\n";
+    print $cfile "export BLASTDIR=$cpath\n\n";
     if ($opt_B) {
         # the following four lines were commented and caused problems when 
         # not using blastn or megablast
@@ -100,12 +101,12 @@ sub check_batch_file {
 sub submit_batch {
     my $self = shift;
 
-    my $bsub = 'bsub';
+    my $sbatch = 'sbatch';
     my $batchfile = $self->batchfile();
 
-    open(BSUB,"-|","$bsub < $batchfile");
-    my @stdout = <BSUB>;
-    close(BSUB);
+    open(SBATCH,"-|","$sbatch < $batchfile");
+    my @stdout = <SBATCH>;
+    close(SBATCH);
     $self->stdout(@stdout);
     $self->parse_jobid();
 }
@@ -115,9 +116,12 @@ sub parse_jobid {
 
     my @stdout = $self->stdout();
     my $jobid;
+
+    # lines are assumed to look like
+    # Submitted batch job 636
     
     if (@stdout) {
-        if ($stdout[0] =~ /Job\s<(\d+)>\s/) {
+        if ($stdout[0] =~ /Submitted\sbatch\sjob\s<(\d+)>/) {
             $jobid = $1;
         }
         #    print @stdout unless ($quiet);
@@ -129,7 +133,11 @@ sub jobstate {
     my $self = shift;
     my $jobid = $self->jobid();
 
-    my $bin = "bjobs";
+    my $bin = "scontrol -o show job ";
+    # there should be a line similar to:
+    # JobState=RUNNING Reason=None Dependency=(null)
+    # the -o option puts evertyhing on one line
+    # I want the JobState value
 
     my @resp = ();
     eval {
@@ -142,12 +150,14 @@ sub jobstate {
 #        default { say "\$\@ = '$@'" }
 #    }
 
-    if (@resp && ($resp[1] =~ /RUN/ || $resp[1] =~ /PEND/)) {
-        return 1;
-    } else {
-        return 0;
-    }
+    my $retval = 0;
 
+    if (@resp && ($resp[1] =~ /\sJobState\=(\w+)\w/)) {
+        if ($1 eq 'RUNNING' || $1 eq 'PENDING') {
+            $retval = 1;
+        }
+    }
+    return $retval;
 }
 
 __PACKAGE__->meta->make_immutable;

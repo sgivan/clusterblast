@@ -22,12 +22,20 @@ use warnings;
 use autodie;
 use Moose;
 use Clusterblast::Batch::openlava;
+use Clusterblast::Batch::slurm;
 
 1;
 
 has 'openlava' => (
     is          =>  'ro',
     builder     =>  '_build_openlava',
+    lazy        =>  1,
+);
+
+has 'slurm' => (
+    is          =>  'ro',
+    builder     =>  '_build_slurm',
+    lazy        =>  1,
 );
 
 has 'batch' =>  (
@@ -39,6 +47,15 @@ sub _build_openlava {
     my $self = shift;
 
     my $batch = Clusterblast::Batch::openlava->new();
+    $self->batch($batch);
+
+    return $batch;
+}
+
+sub _build_slurm {
+    my $self = shift;
+
+    my $batch = Clusterblast::Batch::slurm->new();
     $self->batch($batch);
 
     return $batch;

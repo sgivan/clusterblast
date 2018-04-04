@@ -39,6 +39,10 @@ my $batch = $cb->batch();
 
 isa_ok($batch,'Clusterblast::Batch::openlava');
 
+my $slurm = $cb->slurm();
+
+isa_ok($slurm, 'Clusterblast::Batch::slurm');
+
 my $params = {
     id          =>  'test',
 #    jobid       =>  'jobid',
@@ -55,8 +59,20 @@ $batch->make_batch_file($params);
 
 my $outfile = $batch->batchfile();
 
-is($outfile,'test.cluster','batchfile name set');
+is($outfile,'test.bsub','batchfile name set');
 
 is($batch->check_batch_file(), 1, 'batch file created');
 
-unlink('test.cluster');
+#unlink('test.cluster');
+
+$slurm->make_batch_file($params);
+
+my $sbatchfile = $slurm->batchfile();
+
+is($sbatchfile, 'test.sbatch', 'slurm batchfile name set');
+
+is($slurm->check_batch_file(), 1, 'slurm batchfile created');
+
+#unlink('slurm.sbatch');
+
+
