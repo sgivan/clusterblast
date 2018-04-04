@@ -43,7 +43,7 @@ sub make_batch_file {
     my $memory = $params->{memory} || 1000;
     my $processors = $params->{processors} || 1;
     my $opt_B = $params->{opt_B} || 0;
-    $cpath = "/ircf/ircfapps/bin" if ($opt_B);
+    $cpath = "/share/ircf/ircfapps/bin" if ($opt_B);
     my $blast = $params->{blast} || 'blastn';
     my $task = $params->{task} || 'blastn';
     my $wd_cluster = $params->{wd_cluster} || '/path/to/wd';

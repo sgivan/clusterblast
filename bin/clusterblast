@@ -34,7 +34,7 @@ $quiet = $opt_Q;
 $monitor = $opt_c;
 $monitor_max = $monitor ? $monitor : 1000;
 print "debugging mode\n" if ($debug);
-$queue = $opt_q || 'normal';
+$queue = $opt_q || 'CLUSTER';
 $minseqlength = $opt_l || 1;
 $maxseqlength = $opt_L || 1000000;
 $task = $opt_t || 'blastn';
@@ -83,9 +83,9 @@ exit;
 
 #$cpath = "/evbio/NCBI/ncbitools/ncbi/";
 $cpath = "/opt/bio/ncbi/bin";
-$cpath = "/ircf/ircfapps/bin" if ($opt_B);
+$cpath = "/share/ircf/ircfapps/bin" if ($opt_B);
 $dpath = $opt_P || '/ircf/dbase/BLASTDB';
-$memory = $opt_r || 1000;
+$memory = $opt_r || '10G';
 $processors = $opt_p || 1;
 
 #if ($opt_m) {
@@ -275,7 +275,8 @@ foreach my $seq (@seqs) {
         mega        =>  $mega,
     };
 
-    my $batch = $cb->batch()->openlava();
+    #my $batch = $cb->batch()->openlava();
+    my $batch = $cb->batch()->slurm();
     $batch->make_batch_file($params);
     my $outfile = $batch->batchfile();
     my $jobname = $batch->jobname();

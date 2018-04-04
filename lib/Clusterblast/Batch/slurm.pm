@@ -43,7 +43,7 @@ sub make_batch_file {
     my $memory = $params->{memory} || '1G';
     my $processors = $params->{processors} || 1;
     my $opt_B = $params->{opt_B} || 0;
-    $cpath = "/ircf/ircfapps/bin" if ($opt_B);
+    $cpath = "/share/ircf/ircfapps/bin" if ($opt_B);
     my $blast = $params->{blast} || 'blastn';
     my $task = $params->{task} || 'blastn';
     my $wd_cluster = $params->{wd_cluster} || '/path/to/wd';
@@ -63,8 +63,8 @@ sub make_batch_file {
 
     print $cfile "#! /bin/bash\n";
     print $cfile "#SBATCH -J $id\n";
-    print $cfile "#SBATCH -o $cluster_dir\n";
-    print $cfile "#SBATCH -e $cluster_dir\n";
+    print $cfile "#SBATCH -o $cluster_dir/\%J.o\n";
+    print $cfile "#SBATCH -e $cluster_dir/\%J.e\n";
     print $cfile "#SBATCH --partition $queue\n";
     print $cfile "#SBATCH --ntasks=1\n";
     print $cfile "#SBATCH --cpus-per-task $processors\n";
@@ -121,10 +121,11 @@ sub parse_jobid {
     # Submitted batch job 636
     
     if (@stdout) {
-        if ($stdout[0] =~ /Submitted\sbatch\sjob\s<(\d+)>/) {
+        if ($stdout[0] =~ /Submitted\sbatch\sjob\s(\d+)/) {
             $jobid = $1;
         }
-        #    print @stdout unless ($quiet);
+        #print "stdout: '@stdout'\n";
+        #print "jobid: '$jobid'\n";
     }
     $self->jobid($jobid);
 }
@@ -152,7 +153,7 @@ sub jobstate {
 
     my $retval = 0;
 
-    if (@resp && ($resp[1] =~ /\sJobState\=(\w+)\w/)) {
+    if (@resp && ($resp[0] =~ /\sJobState\=(\w+)\w/)) {
         if ($1 eq 'RUNNING' || $1 eq 'PENDING') {
             $retval = 1;
         }
