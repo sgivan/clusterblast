@@ -39,7 +39,7 @@ sub make_batch_file {
     my $queue = $params->{queue} || 'CLUSTER';# this is the slurm partition
     my $cpath = $params->{cpath} || "/opt/bio/ncbi/bin";
     # $cpath changes if $opt_B != 0, see below
-    my $dpath = $params->{dpath} || '/ircf/dbase/BLASTDB';
+    my $dpath = $params->{dpath} || '/share/ircf/dbase/BLASTDB';
     my $memory = $params->{memory} || '1G';
     my $processors = $params->{processors} || 1;
     my $opt_B = $params->{opt_B} || 0;
@@ -146,6 +146,7 @@ sub jobstate {
         @resp = <CHK>;
         close(CHK);
     };
+    #print "\@resp: '@resp'\n";
 
 #    given ($@) {# like switch:
 #        default { say "\$\@ = '$@'" }
@@ -153,7 +154,7 @@ sub jobstate {
 
     my $retval = 0;
 
-    if (@resp && ($resp[0] =~ /\sJobState\=(\w+)\w/)) {
+    if (@resp && ($resp[0] =~ /\sJobState\=(\w+)\s/)) {
         if ($1 eq 'RUNNING' || $1 eq 'PENDING') {
             $retval = 1;
         }

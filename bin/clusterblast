@@ -84,7 +84,7 @@ exit;
 #$cpath = "/evbio/NCBI/ncbitools/ncbi/";
 $cpath = "/opt/bio/ncbi/bin";
 $cpath = "/share/ircf/ircfapps/bin" if ($opt_B);
-$dpath = $opt_P || '/ircf/dbase/BLASTDB';
+$dpath = $opt_P || '/share/ircf/dbase/BLASTDB';
 $memory = $opt_r || '10G';
 $processors = $opt_p || 1;
 

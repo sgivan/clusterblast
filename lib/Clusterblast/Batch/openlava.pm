@@ -39,7 +39,7 @@ sub make_batch_file {
     my $queue = $params->{queue} || 'normal';
     my $cpath = $params->{cpath} || "/opt/bio/ncbi/bin";
     # $cpath changes if $opt_B != 0, see below
-    my $dpath = $params->{dpath} || '/ircf/dbase/BLASTDB';
+    my $dpath = $params->{dpath} || '/share/ircf/dbase/BLASTDB';
     my $memory = $params->{memory} || 1000;
     my $processors = $params->{processors} || 1;
     my $opt_B = $params->{opt_B} || 0;
