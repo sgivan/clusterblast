@@ -46,8 +46,8 @@ if ($opt_h) {
 print <<HELP;
 
 This is a script that takes a FASTA-formatted file of nucleotide
-or protein sequences and BLASTs them using the Lewis cluster.  A
-summary of the command line options:
+or protein sequences and BLASTs them using the Slurm scheduler.
+A summary of the command line options:
 
 usage: $usage
 
@@ -60,11 +60,11 @@ usage: $usage
 -l      minimum sequence length to accept [1]
 -L      maximum sequence length to accept [1000000]
 -a      extra arguments to send to blastall (ie, -a '-b 500', or '-num_alignments 500')
--r      amount of RAM needed by blastall (default = 1000, which = 1GB)
+-r      amount of RAM needed by blastall (default = 10G)
 -E      BLAST E-value cut-off (defaults to 1e-06; enclose in quotes)
 -H      generate HTML output
 -M      use Megablast (only available for a blastn search)
--q      which cluster queue to submit jobs to [normal]
+-q      which Slurm partition to submit the jobs to [CLUSTER]
 -p      number of processors to use per blast job [1]
 -N      specific nodes to run jobs on; for example:
             -N 'chrom10-20'
