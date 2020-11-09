@@ -49,7 +49,7 @@ Option  Description
  -o     output file name (defaults to bestblast.tab)
  -e     E-value cutoff (defaults to 1e-06)
  -p     % identity cutoff (85 means 85%)
- -c     queue coverage cutoff (percentage; ie 85 means 85%)
+ -c     query coverage cutoff (percentage; ie 85 means 85%)
  -C     subj coverage cutoff (percentage; ie 85 means 85%. Requires -d also)
  -t     output statistics for tiled hsps
  -E     print report for every hit < E-value (overrides -n)
