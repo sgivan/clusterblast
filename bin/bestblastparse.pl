@@ -189,7 +189,7 @@ foreach my $file (@files) {
     my $reps_local = 0;
 
     while (my $hit = $result->next_hit()) {
-        print "hit name: '", $hit->name(), "'\n";
+        #print "hit name: '", $hit->name(), "'\n";
         my $algorithm = $hit->algorithm();
         my ($qcontig, $scontig);
         if ($algorithm ne 'TBLASTX') {
@@ -227,6 +227,7 @@ foreach my $file (@files) {
             last unless ($opt_E);
         }
 	    ++$reps_local;
+        print "hit name: '", $hit->name(), "'\n";
 
         # calculate some stats differently if hsps are tiled
         # ie, coverage
